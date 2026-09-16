@@ -1,0 +1,3 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),{exportDictionary}=require('../src/dictionary-export.cjs');
+test('IME書き出しはBOM付きUTF-16LE・CRLF・読み表記品詞のTSV',()=>{const r=exportDictionary([{term:'Claude',reading:'ｸﾛｰﾄﾞ'},{term:'音声',reading:'オンセイ'}]);assert.equal(r.count,2);assert.equal(r.buffer[0],255);assert.equal(r.buffer[1],254);assert.ok(r.buffer.subarray(2).toString('utf16le').endsWith('くろーど\tClaude\t名詞\r\nおんせい\t音声\t名詞\r\n'))});
+test('未完成用語やTSV構造を壊す文字を黙って書き出さない',()=>{for(const row of [{term:'名前',reading:''},{term:'名\t前',reading:'なまえ'},{term:'名\n前',reading:'なまえ'}])assert.throws(()=>exportDictionary([row]));assert.throws(()=>exportDictionary([]))});

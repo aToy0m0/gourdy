@@ -1,0 +1,6 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {validateEdits,applyEdits}=require('../src/corrections.cjs');
+function check(text,after,parts,protectedTokens=[]){let start=0;const tokens=parts.map(text=>{const t={text,start,end:start+text.length};start=t.end;return t});return validateEdits(text,{tokens,protected:protectedTokens,candidates:[]},{text,start:0,end:text.length},{selected:[],edits:[{before:text,after,kind:'punctuation',reason:'句読点を補完'}]});}
+test('数字・否定を保持した句読点追加は自動適用する',()=>{const text='金額は15万円です変更しないでください';const r=check(text,'金額は15万円です。変更しないでください。',['金額','は','15','万円','です','変更','し','ない','で','ください'],[{start:3,end:5,text:'15',kinds:['数字']},{start:13,end:15,text:'ない',kinds:['否定']}]);assert.equal(r.edits.length,1);assert.equal(r.edits[0].review,false);assert.equal(applyEdits(text,r.edits),'金額は15万円です。変更しないでください。')});
+test('読点を節の区切りに追加する',()=>{assert.equal(check('確認したら連絡します','確認したら、連絡します。',['確認','し','たら','連絡','し','ます']).edits.length,1)});
+test('既存記号・小数・空白の変更と単語内への追加を拒否する',()=>{for(const [a,b,parts] of [['3.14です','314です。',['3.14','です']],['いいですか？','いいですか。',['いい','です','か','？']],['音声入力','音、声入力。',['音声','入力']],['A B','AB。',['A',' ','B']],['確認します。','確認します。。',['確認','し','ます','。']],['15','1、5',['1','5']]])assert.equal(check(a,b,parts).edits.length,0,a)});

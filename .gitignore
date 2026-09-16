@@ -1,0 +1,32 @@
+# Dependencies, models and generated distributions
+node_modules/
+.venv/
+.npm-cache/
+.pip-cache/
+/runtime/
+/models/
+/dist*/
+/release/
+/artifacts/
+/src/*.exe
+__pycache__/
+*.pyc
+*.log
+# Credentials and local tools
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.pencil/
+.agents/
+.codex/
+AGENTS.md
+/_*/
+# Internal notes stay local; only this documentation subtree is public.
+/docs/*
+!/docs/public/
+# Publish repeatable tests, not personal desktop probes or recordings.
+/test/*
+!/test/*.test.cjs
+!/test/test_nlp.py

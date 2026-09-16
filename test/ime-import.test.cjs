@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {defaults}=require('../src/store.cjs'),{mergeIme}=require('../src/ime-dictionary.cjs');
+const fresh=()=>({settings:structuredClone(defaults),history:[{id:'keep',text:'残す'}]});
+test('IME取り込みは読みの表記ゆれを重複扱いし既存用語と履歴を保持',()=>{const data=fresh(),r=mergeIme(data,[{term:'Claude',reading:'くろーど'},{term:'用語',reading:'ようご'},{term:'用語',reading:'ヨウゴ'}]);assert.equal(r.stats.added,1);assert.equal(r.stats.duplicates,2);assert.equal(r.data.settings.terms.length,3);assert.deepEqual(r.data.history,data.history);assert.equal(data.settings.terms.length,2);});
+test('IME自動取り込みは削除済みを復活させず手動取り込みなら再追加',()=>{const first=mergeIme(fresh(),[{term:'用語',reading:'ようご'}]).data;first.settings.terms=first.settings.terms.filter(t=>t.term!=='用語');assert.equal(mergeIme(first,[{term:'用語',reading:'ようご'}],{automatic:true}).stats.added,0);assert.equal(mergeIme(first,[{term:'用語',reading:'ようご'}]).stats.added,1);});
+test('IME取り込みは不正行・件数上限を報告して未取り込み語を既読扱いしない',()=>{const data=fresh();data.settings.terms=Array.from({length:100},(_,i)=>({term:String(i),reading:String(i)}));const r=mergeIme(data,[{term:'新語',reading:'しんご'},{term:'',reading:'空'}]);assert.equal(r.stats.overflow,1);assert.equal(r.stats.skipped,1);assert.equal(r.data.imeSeen.length,0);assert.throws(()=>mergeIme(data,[{term:null}]),/形式/);});

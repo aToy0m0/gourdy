@@ -1,0 +1,73 @@
+{
+  "groups": [
+    {
+      "base_url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23",
+      "files": [
+        {
+          "name": "adapter.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/adapter.ort",
+          "size": 2869296,
+          "checksum": "GzlnQA==",
+          "checksum_type": "crc32c",
+          "sha256": "edcf20b9d0bc0a92bc0ddf37d8b96599de35a6cbee970368ed74c774b055e546"
+        },
+        {
+          "name": "cross_kv.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/cross_kv.ort",
+          "size": 5358752,
+          "checksum": "0btjiw==",
+          "checksum_type": "crc32c",
+          "sha256": "fbd18ec7b9514391d7121f4d4abec1be05a60e94a0f174061428380bf772c3e7"
+        },
+        {
+          "name": "decoder_kv.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/decoder_kv.ort",
+          "size": 61314512,
+          "checksum": "qXEgyA==",
+          "checksum_type": "crc32c",
+          "sha256": "1246d81eeb96df05d0163dcd48ce271a061b01aa3aea047239fbde22485248be"
+        },
+        {
+          "name": "encoder.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/encoder.ort",
+          "size": 44358376,
+          "checksum": "fltsVQ==",
+          "checksum_type": "crc32c",
+          "sha256": "1da7cc82cb91d30ad9dc4e338fb80e7a2336b2c8ad634b826419222698fbe3a5"
+        },
+        {
+          "name": "frontend.model.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/frontend.model.ort",
+          "size": 31208,
+          "checksum": "RhG3gA==",
+          "checksum_type": "crc32c",
+          "sha256": "de65092295f011a39ee569f03d073e3564d94252efd74ebde16d720bcc43e38b"
+        },
+        {
+          "name": "frontend.weights.ort",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/frontend.weights.ort",
+          "size": 7769288,
+          "checksum": "VjqzBw==",
+          "checksum_type": "crc32c",
+          "sha256": "4e89578a495a6c4dd5632e7acaf2fc38841e6831738c2702ef10f873125a14ec"
+        },
+        {
+          "name": "streaming_config.json",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/streaming_config.json",
+          "size": 512,
+          "checksum": "Y/oEHw==",
+          "checksum_type": "crc32c",
+          "sha256": "12d16c7f5ea6734d197b79baf47914ea7e996d6fca8d303a19aca10d0617cecc"
+        },
+        {
+          "name": "tokenizer.bin",
+          "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/tokenizer.bin",
+          "size": 101836,
+          "checksum": "M94Ogg==",
+          "checksum_type": "crc32c",
+          "sha256": "9f2599f20c3a9b03d79dbe122e443647c6589ce8e5c73e65e5c5d6f73485d5de"
+        }
+      ]
+    }
+  ]
+}

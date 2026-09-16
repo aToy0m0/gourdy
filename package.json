@@ -1,0 +1,94 @@
+{
+  "name": "local-dictation-streaming",
+  "version": "0.5.1",
+  "private": true,
+  "description": "Windows向けローカル音声入力",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "build:native": "powershell -NoProfile -ExecutionPolicy Bypass -File build-native.ps1",
+    "predist": "npm run build:native",
+    "dist": "electron-builder --win --x64 --dir",
+    "test:nlp": ".venv\\Scripts\\python.exe -X utf8 -m unittest discover -s test -p test_nlp.py -v",
+    "release:zip": "python scripts/package-release.py"
+  },
+  "devDependencies": {
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.63.0"
+  },
+  "build": {
+    "appId": "jp.localdictation.streaming",
+    "productName": "okosy",
+    "asar": false,
+    "extraFiles": [
+      "README.md",
+      "LICENSE",
+      "licenses/**/*",
+      {
+        "from": "docs/public",
+        "to": "docs/public"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "runtime/llama",
+        "to": "runtime/llama"
+      },
+      {
+        "from": "runtime/python",
+        "to": "runtime/python",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/pip/**",
+          "!**/pip-*.dist-info/**"
+        ]
+      },
+      {
+        "from": "models",
+        "to": "models",
+        "filter": [
+          "Qwen3.5-0.8B-Q4_0.gguf",
+          "moonshine-small-ja/**/*"
+        ]
+      },
+      {
+        "from": "runtime/moonshine",
+        "to": "runtime/moonshine",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
+      },
+      {
+        "from": "runtime/ffmpeg",
+        "to": "runtime/ffmpeg",
+        "filter": [
+          "ffmpeg.exe",
+          "ffprobe.exe",
+          "*.dll",
+          "LICENSE.txt",
+          "BUILD.txt"
+        ]
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!src/transcribe.cjs",
+      "!src/**/*.cs",
+      "!src/**/__pycache__/**",
+      "!src/style.css"
+    ],
+    "win": {
+      "target": "dir",
+      "signAndEditExecutable": false
+    },
+    "directories": {
+      "output": "dist-ui"
+    }
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,6 @@
+moonshine-voice==0.1.5
+sounddevice==0.5.5
+platformdirs==4.9.4
+google-crc32c==1.8.0
+cffi==2.0.0
+pycparser==2.23

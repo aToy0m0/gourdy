@@ -1,0 +1,22 @@
+[
+  {
+    "file": "llama.zip",
+    "folder": "runtime",
+    "extract": "llama",
+    "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10976/llama-b10976-bin-win-cpu-x64.zip",
+    "sha256": "29B68D5ABF165D77F928D6C0D46D9181EC07C46231BAF7C112D182B7ECFDB456"
+  },
+  {
+    "file": "python.zip",
+    "folder": "runtime",
+    "extract": "python",
+    "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+    "sha256": "4ACBED6DD1C744B0376E3B1CF57CE906F9DC9E95E68824584C8099A63025A3C3"
+  },
+  {
+    "file": "Qwen3.5-0.8B-Q4_0.gguf",
+    "folder": "models",
+    "url": "https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF/resolve/8fea620810c4afa23dd6443f999a48574c1611a3/Qwen3.5-0.8B-Q4_0.gguf",
+    "sha256": "57D1997790D1744FBA5B40A7317DF71EA5E2ACEE28C47E78F0CCE39C0703F8CF"
+  }
+]
