@@ -1,6 +1,6 @@
 {
   "name": "local-dictation-streaming",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "description": "Windows向けローカル音声入力",
   "main": "src/main.cjs",

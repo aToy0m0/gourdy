@@ -8,6 +8,7 @@ Gourdy独自部分のMITライセンスは、以下の第三者コード・モ�
 
 | コンポーネント | 用途・版 | 主なライセンス | 配布物内の本文 |
 | --- | --- | --- | --- |
+| [Lucide](https://github.com/lucide-icons/lucide) | settings / info / x、2026-09-17取得、画面アイコン | ISC、Feather由来のinfo / xはMIT | licenses/LUCIDE-LICENSE.txt |
 | [Electron](https://github.com/electron/electron) / Chromium | Electron 44.3.0、デスクトップUI | MITおよび各第三者条件 | LICENSE.electron.txt / LICENSES.chromium.html |
 | [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | 1.30.0、ローカルMCP接続 | MIT | licenses/npm/_modelcontextprotocol_sdk-1.30.0.txt |
 | [CPython](https://www.python.org/) | 3.12.10、埋め込み実行環境 | PSF Licenseおよび同梱第三者条件 | resources/runtime/python/LICENSE.txt |
@@ -36,7 +37,7 @@ ElectronのChromium第三者表示には、そのバイナリに含まれる依�
 
 ## 対応ソースと追加通知
 
-[0.7.0のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.0)に、`gourdy-0.7.0-corresponding-sources.zip` をアプリと同時に掲載します。
+[0.7.1のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1)に、`gourdy-0.7.1-corresponding-sources.zip` をアプリと同時に掲載します。
 上流URLと取得物のSHA256は、その中の `SOURCE-MANIFEST.json` に記録します。
 
 - FFmpeg：コミット `912208af28` の未変更ソース、`build-ffmpeg.sh`、ビルド条件を収録。GPL、nonfree、version3、外部ライブラリの自動検出を無効化し、共有DLLとしてビルドしています。`resources/runtime/ffmpeg/BUILD.txt` に識別情報を記載します。DLLは交換可能です。

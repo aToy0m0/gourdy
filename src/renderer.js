@@ -2,13 +2,13 @@ const api=window.dictation,$=id=>document.getElementById(id);
 let continuationState=null;
 let settings,phase='idle',stream,recorder,pump,failure,cancelled=false,timer,started,notice='',command=false,released=false,backendReady=false,outcome='';const pending=[];let cancelMicrophone=null;let operation=null,restarting=false;
 for(let i=0;i<11;i++)$('wave').append(document.createElement('i'));
-function configure(value){settings=value;const mono=value.accent==='#262626',base=mono?'#e4e4e4':value.accent,dark=mono?'#a0a0a0':'#'+base.slice(1).match(/../g).map(x=>Math.round(parseInt(x,16)*.72).toString(16).padStart(2,'0')).join('');document.documentElement.style.setProperty('--accent',value.accent);document.documentElement.style.setProperty('--icon-background',base);document.documentElement.style.setProperty('--icon-active-background',dark);document.documentElement.style.setProperty('--wave-background',mono?'#777':base);document.documentElement.style.setProperty('--wave-active-background',mono?'#444':dark);document.body.classList.toggle('text-background',value.textBackground!==false);render()}
+function configure(value){settings=value;$('hide').title=value.closeToTray?'トレイへ閉じる':'アプリを終了';const mono=value.accent==='#262626',base=mono?'#e4e4e4':value.accent,dark=mono?'#a0a0a0':'#'+base.slice(1).match(/../g).map(x=>Math.round(parseInt(x,16)*.72).toString(16).padStart(2,'0')).join('');document.documentElement.style.setProperty('--accent',value.accent);document.documentElement.style.setProperty('--icon-background',base);document.documentElement.style.setProperty('--icon-active-background',dark);document.documentElement.style.setProperty('--wave-background',mono?'#777':base);document.documentElement.style.setProperty('--wave-active-background',mono?'#444':dark);document.body.classList.toggle('text-background',value.textBackground!==false);render()}
 
 function render(){syncInfo();$('shortcut').textContent=shortcutLabel((settings?.shortcut||''));const active=phase==='recording';document.body.classList.toggle('recording',active);$('record').classList.toggle('active',active);$('record').disabled=restarting;$('record').setAttribute('aria-label',active?'録音を停止':phase==='processing'||phase==='starting'?'中断して録音を再開':'録音を開始');$('record').removeAttribute('title');$('shortcut-tip').textContent=$('record').getAttribute('aria-label')+' · '+shortcutLabel(settings?.shortcut||'');document.body.classList.toggle('error',Boolean(notice));
   if(notice){$('status').textContent=notice;$('status').title=notice;$('settings').title='設定';return;}
   $('status').title='';$('settings').title='設定';if(outcome&&phase==='idle'){$('status').textContent=outcome;return;}$('status').textContent=active?(command?'コマンド · キーを離して実行':'録音中 00:00'):phase==='starting'?'マイクを準備中':phase==='processing'?'補正中 · クリックで再開':'クリックで録音開始';
 }
-function error(e){notice=(e.message||String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/,'');render();api.reportError(notice.slice(0,4000)).catch(e=>{notice+='\n原因の共有に失敗: '+e.message;$('status').title=notice;});}
+function error(e){dismissedNotice='';notice=(e.message||String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/,'');render();api.reportError(notice.slice(0,4000)).catch(e=>{notice+='\n原因の共有に失敗: '+e.message;$('status').title=notice;});}
 let noiseGate=Microphone.gate();
 const levels=Array(11).fill(0);
 function resetWave(){levels.fill(0);for(const bar of $('wave').children){bar.style.height='3px';bar.style.background=''}}
@@ -57,13 +57,14 @@ $('copy-continuation').onclick=async()=>{try{await api.continuationCopy();notice
 $('insert-continuation').onclick=async()=>{try{const result=await api.continuationInsert();notice='';outcome=result.verified?'続きを入力しました':'送信しました · 入力先を確認';render();}catch(e){error(e)}};
 
 // Routine recording status stays off the canvas; only actionable messages add the third circle.
-let infoMessage='';
+let infoMessage='',dismissedNotice='';
 function syncInfo(){
-  const message=notice||(continuationState?.reason)||((phase==='idle'&&outcome)||'');
+  const message=notice!==dismissedNotice?notice:'';
   $('info').hidden=!message;const shell=$('shell').querySelector('path');shell.setAttribute('d',shell.dataset.idle);
   if(message!==infoMessage){infoMessage=message;api.miniInfo(message).catch(e=>{console.error(e);$('info').title='お知らせを更新できません: '+e.message;});}
 }
 $('info').onclick=()=>api.miniInfo(infoMessage,true).catch(error);
+api.on('info-dismissed',text=>{dismissedNotice=text;render();});
 function showShortcut(show){$('shortcut-tip').hidden=!show;}
 $('record').addEventListener('pointerenter',()=>showShortcut(true));
 $('record').addEventListener('pointerleave',()=>showShortcut(false));

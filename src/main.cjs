@@ -18,7 +18,7 @@ const { windowTarget } = require('./window-target.cjs');
 const {RealtimeInput}=require('./realtime-input.cjs');
 const {continuation}=require('./continuation.cjs');
 let bubble,bubbleReady,bubbleDismissed=false,remaining=null,continuationBusy=false,warmVoice=null;
-let infoWindow,infoReady,infoText='',infoOpen=false;
+let infoWindow,infoReady,infoText='',infoOpen=false,infoSize={width:276,height:146};
 app.disableHardwareAcceleration();
 app.setAppUserModelId('jp.localdictation.streaming');
 const appIcon=path.join(__dirname,'assets','gourdy.ico');
@@ -58,7 +58,7 @@ function trusted(event, name) {
 function send(window, channel, value) { if(window && !window.isDestroyed())window.webContents.send(channel,value); }
 function snapshot() { return {...store.data, mcp:mcpServer?.status, latest, phase, version:app.getVersion(), dataPath:store.file,notice:lastNotice,commandModel:commandModel?.state}; }
 function broadcast() { send(infoWindow,'info',{text:infoText,background:store.data.settings.textBackground!==false});send(mini,'settings-changed',store.data.settings);send(editor,'data-changed',snapshot()); }
-function setPhase(value) {phase=value;tray?.setToolTip('Gourdy — '+({idle:'待機中',starting:'準備中',recording:'録音中',processing:'補正中'}[value]));send(editor,'phase-changed',value);}
+function setPhase(value) {phase=value;tray?.setToolTip('Gourdy — '+({idle:'待機中',starting:'準備中',recording:'録音中',processing:'補正中'}[value]));send(editor,'phase-changed',value);send(bubble,'continuation-phase',value);}
 function report(error) { lastNotice=error.message; send(mini,'notice',error.message);send(editor,'notice',error.message);if(tray)tray.setToolTip('Gourdy — '+error.message.slice(0,90)); }
 function serialize(fn) { const result=saving.then(fn);saving=result.then(()=>{},()=>{});return result; }
 function secureWindow(window, file) {
@@ -86,7 +86,7 @@ async function ensureMini() {
   mini.on('move',()=>positionBubble());
   mini.on('resize',()=>positionInfo());
   mini.on('hide',()=>{infoOpen=false;infoWindow?.hide();});
-  mini.on('close',event=>{if(!shuttingDown){event.preventDefault();mini.hide();}});
+  mini.on('close',event=>{if(!shuttingDown){event.preventDefault();closeMini();}});
   await secureWindow(mini,'index.html');
 }
 function positionBubble(){
@@ -98,10 +98,10 @@ function positionBubble(){
 function positionInfo(){
   if(!infoWindow||infoWindow.isDestroyed()||!mini)return;
   const m=mini.getBounds(),area=screen.getDisplayMatching(m).workArea;
-  // Keep information beside the recorder so it does not cover transcription above it.
-  const width=Math.min(300,area.width),height=Math.min(194,area.height);
-  const x=m.x-width>=area.x?m.x-width:m.x+m.width;
-  infoWindow.setBounds({x:Math.max(area.x,Math.min(x,area.x+area.width-width)),y:Math.max(area.y,Math.min(m.y,area.y+area.height-height)),width,height});
+  // Anchor the visible panel's bottom-right to the gear's outer right / inner top.
+  const scale=m.width/280,width=Math.min(infoSize.width,area.width),height=Math.min(infoSize.height,area.height);
+  const x=Math.round(m.x+256*scale+6-width),y=Math.round(m.y+222*scale+6-height);
+  infoWindow.setBounds({x:Math.max(area.x,Math.min(x,area.x+area.width-width)),y:Math.max(area.y,Math.min(y,area.y+area.height-height)),width,height});
 }
 async function updateInfo(text,open){
   infoText=text;
@@ -118,7 +118,7 @@ async function updateInfo(text,open){
 }
 async function refreshContinuation(){
   const enabled=store.data.settings.continuationAssist;
-  const value=remaining&&enabled?{...remaining,ready:phase==='idle',busy:continuationBusy}:null;
+  const value=remaining&&enabled?{...remaining,phase,ready:phase==='idle',busy:continuationBusy}:null;
   send(mini,'continuation',value);
   if(!value||bubbleDismissed){bubble?.hide();return;}
   if(!bubble||bubble.isDestroyed()){
@@ -222,7 +222,8 @@ function writeLive(text) {
   active.writing=Promise.resolve().then(async()=>{try{while(active.pendingText!==undefined&&!active.blocked){const next=active.pendingText;active.pendingText=undefined;if(next!==active.state.written)active.state=await active.input.request({kind:'write',text:next});}}
   catch(error){active.blocked=error.message;active.continuationDiagnostic={mayHaveWritten:error.mayHaveWritten,confirmedWritten:error.confirmedWritten,previousWritten:active.state.written,previousVerified:active.state.verified};if(typeof error.confirmedWritten==='string')active.state={written:error.confirmedWritten,verified:true};active.continuationCertain=(error.mayHaveWritten===false||typeof error.confirmedWritten==='string')&&(active.state.written===''||active.state.verified===true);report(error);updateContinuation();}}).finally(()=>{active.writing=null;});
 }
-async function toggle(){await ensureMini();send(mini,'toggle');}
+function closeMini(){if(store.data.settings.closeToTray)mini.hide();else app.quit();}
+async function toggle(){await showMini();send(mini,'toggle');}
 async function remember(text, original, status, id) {
   if(!text.trim())return;
   latest={id:id||randomUUID(),at:new Date().toISOString(),text,original,status};
@@ -267,7 +268,8 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('snapshot',event=>{trusted(event,'settings');return snapshot();});
     ipcMain.handle('mini-settings',event=>{trusted(event,'mini');return store.data.settings;});
     ipcMain.handle('mini-info',(event,text,open)=>{trusted(event,'mini');if(typeof text!=='string'||text.length>16000||typeof open!=='boolean')throw new Error('情報の形式が不正です。');return updateInfo(text,open);});
-    ipcMain.handle('info-hide',event=>{trusted(event,'info');infoOpen=false;infoWindow.hide();});
+    ipcMain.handle('info-hide',event=>{trusted(event,'info');infoOpen=false;infoWindow.hide();send(mini,'info-dismissed',infoText);});
+    ipcMain.handle('info-size',(event,size)=>{trusted(event,'info');if(!size||!Number.isFinite(size.width)||!Number.isFinite(size.height))throw new Error('お知らせのサイズが不正です。');infoSize={width:Math.max(192,Math.min(360,Math.ceil(size.width))),height:Math.max(90,Math.min(400,Math.ceil(size.height)))};positionInfo();});
     ipcMain.handle('report-mini-error',(event,message)=>{trusted(event,'mini');if(typeof message!=='string'||message.length>4000)throw new Error('エラー情報が不正です。');lastNotice=message;send(editor,'notice',message);});
     ipcMain.handle('cancel-media',event=>{trusted(event,'settings');mediaController?.abort();});
     ipcMain.handle('recording-list',async event=>{trusted(event,'settings');await recordings.prune();return recordings.list();});
@@ -296,7 +298,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('meeting-preview',async(event,id,start)=>{
       trusted(event,'settings');const job=await meetings.read(id);await meetings.verify(job);
       if(!Number.isFinite(start)||start<0||start>=job.duration)throw new Error('再生位置が不正です。');
-      const end=Math.min(start+30,job.duration);const audio=await decode(job,{start,end},meetings.bin,undefined,true);
+      const part=job.parts.find(p=>p.start===start),end=part?.end??Math.min(start+60,job.duration);const audio=await decode(job,{start,end},meetings.bin,undefined,true);
       return {url:'data:audio/wav;base64,'+audio.toString('base64'),start,end};
     });
     ipcMain.handle('meeting-run',(event,id)=>{trusted(event,'settings');return startMeeting(id);});
@@ -353,7 +355,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('save-settings',(event,patch)=>{trusted(event,'settings');return saveSettings(patch);});
     ipcMain.handle('close-settings',event=>{trusted(event,'settings');closingEditor=true;editor.close();});
     ipcMain.handle('open-settings',(event,tab)=>{trusted(event,'mini');return showSettings(['operation','history'].includes(tab)?tab:'operation');});
-    ipcMain.handle('hide-mini',event=>{trusted(event,'mini');mini.hide();});
+    ipcMain.handle('hide-mini',event=>{trusted(event,'mini');closeMini();});
     ipcMain.handle('destroy-data',async(event,action)=>{
       trusted(event,'settings');if(phase!=='idle')throw new Error('録音・補正が終わってから操作してください。');
       if(action==='reset')return saveSettings({...structuredClone(defaults),terms:store.data.settings.terms,replacements:store.data.settings.replacements},true);

@@ -8,6 +8,13 @@ test('履歴上限はUnicode文字を壊さず適用する',()=>{
   assert.equal(trimHistory(entries,{count:0,chars:10}).length,0);
 });
 test('不正な保存上限・設定を拒否する',()=>{for(const patch of [{count:-1},{chars:0},{liveInput:'yes'},{terms:[{term:1,reading:''}]}])assert.throws(()=>validate({...defaults,...patch}));});
+test('閉じ方の旧設定はトレイへ移行し、完全終了の選択を保持する',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'gourdy-close-'));const settings={...defaults};delete settings.closeToTray;
+ await fs.writeFile(path.join(dir,'app-data.json'),JSON.stringify({settings,history:[]}));
+ const store=new Store(dir);await store.load();assert.equal(store.data.settings.closeToTray,true);assert.equal(defaults.shortcut,'ControlRight');
+ await store.write({...store.data,settings:{...store.data.settings,closeToTray:false}});assert.equal((await new Store(dir).load()).settings.closeToTray,false);
+ assert.throws(()=>validate({...defaults,closeToTray:'quit'}));
+});
 test('旧設定を引き継ぎ、設定と履歴を一緒に保存・再読込する',async()=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'dictation-store-'));
   await fs.writeFile(path.join(dir,'settings.json'),JSON.stringify({shortcut:'Control+F8',liveInput:false,glossary:[{term:'Claude',reading:'クロード'}]}));

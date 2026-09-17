@@ -1,12 +1,12 @@
 # 配布とリリース
 
-現行版は **0.7.0（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.0) でWindows x64用ZIPと対応ソースを配布します。
+現行版は **0.7.1（プレリリース）** です。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1) でWindows x64用ZIPと対応ソースを配布します。
 
 ## 配布物
 
-- `gourdy-0.7.0-windows-x64.zip`：アプリ、標準モデル、依存ランタイム、公開ドキュメント、ライセンス。
-- `gourdy-0.7.0-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
+- `gourdy-0.7.1-windows-x64.zip`：アプリ、標準モデル、依存ランタイム、公開ドキュメント、ライセンス。
+- `gourdy-0.7.1-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
 - `SHA256SUMS.txt`：上記2つのZIPのSHA256。
 
 ZIP全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
