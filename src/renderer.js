@@ -60,7 +60,7 @@ $('insert-continuation').onclick=async()=>{try{const result=await api.continuati
 let infoMessage='';
 function syncInfo(){
   const message=notice||(continuationState?.reason)||((phase==='idle'&&outcome)||'');
-  $('info').hidden=!message;const shell=$('shell').querySelector('path');shell.setAttribute('d',message?shell.dataset.info:shell.dataset.idle);
+  $('info').hidden=!message;const shell=$('shell').querySelector('path');shell.setAttribute('d',shell.dataset.idle);
   if(message!==infoMessage){infoMessage=message;api.miniInfo(message).catch(e=>{console.error(e);$('info').title='お知らせを更新できません: '+e.message;});}
 }
 $('info').onclick=()=>api.miniInfo(infoMessage,true).catch(error);

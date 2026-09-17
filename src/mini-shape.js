@@ -11,7 +11,7 @@ async function updateMiniShape(){
     const path=new Path2D(shell.querySelector('path').getAttribute('d'));
     context.fill(path);context.lineWidth=12;context.stroke(path);context.restore();
   }
-  for(const selector of ['#wave','#hide','#resize-handle','#shortcut-tip']){
+  for(const selector of ['#wave','#info','#hide','#resize-handle','#shortcut-tip']){
     const element=document.querySelector(selector);if(element.hidden)continue;
     const r=element.getBoundingClientRect();context.fillRect(r.x,r.y,r.width,r.height);
   }

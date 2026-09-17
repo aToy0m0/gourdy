@@ -22,5 +22,5 @@ body:hover #hide,#hide:focus-visible{opacity:1}
 #shell{filter:drop-shadow(0 2px 4px #00000020)}
 
 
-#info{left:40px;top:250px;width:48px;height:48px}#info svg{width:24px;height:24px}
+#info{left:12px;top:300px;width:42px;height:42px;background:#fff;color:#222;box-shadow:0 2px 5px #00000020;z-index:2}#info svg{width:22px;height:22px}
 #shortcut-tip{position:absolute;left:10px;top:64px;max-width:260px;padding:6px 10px;border-radius:8px;background:#262626;color:#fff;font-size:max(11px,calc(11px / var(--mini-scale,.6)));line-height:1.4;white-space:normal;overflow-wrap:anywhere;pointer-events:none;z-index:3}
