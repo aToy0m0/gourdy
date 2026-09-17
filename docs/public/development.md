@@ -20,6 +20,7 @@ setupはnpm依存、Python依存、llama.cpp、埋め込みPython、Moonshineモ
 Python依存はバージョン固定ですが、wheelのハッシュ固定は未対応です。
 
 **FFmpegは別途準備が必要です。** `runtime/ffmpeg/` にLGPL sharedビルドのffmpeg.exe、ffprobe.exe、共有DLL、LICENSE.txt、BUILD.txtを置きます。
+Gourdy 0.7.0ではFFmpeg 912208af28を `scripts/build-ffmpeg.sh` でビルドします（WSL内でMinGW-w64、nasm、make、pkg-configが必要）。ビルド先の `gourdy/ffmpeg/bin` からexeとDLLを配置し、MinGWのlibwinpthread-1.dllと通知も同梱します。
 使用中ビルドと必要な対応ソースは [第三者表示](THIRD-PARTY-NOTICES.md) を参照してください。
 FFmpegを準備するまでは会議ファイルの読み込み・音声プレビューを検証できません。
 異なるビルドへ変更するときは、ライセンス・依存・SHA256を改めて確認してください。

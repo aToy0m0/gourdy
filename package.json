@@ -44,7 +44,10 @@
           "**/*",
           "!**/__pycache__/**",
           "!**/pip/**",
-          "!**/pip-*.dist-info/**"
+          "!**/pip-*.dist-info/**",
+          "!**/direct_url.json",
+          "!bin/**",
+          "!Scripts/**"
         ]
       },
       {
@@ -60,7 +63,11 @@
         "to": "runtime/moonshine",
         "filter": [
           "**/*",
-          "!**/__pycache__/**"
+          "!**/__pycache__/**",
+          "!**/*asio*",
+          "!**/direct_url.json",
+          "!bin/**",
+          "!Scripts/**"
         ]
       },
       {

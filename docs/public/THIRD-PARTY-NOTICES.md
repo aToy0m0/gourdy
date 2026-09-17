@@ -2,7 +2,7 @@
 
 Gourdy独自部分のMITライセンスは、以下の第三者コード・モデル・辞書の権利を置き換えません。
 配布物には上流の著作権表示・ライセンス本文を保持します。個々の著作権者は各本文を参照してください。
-この一覧は公開準備中の棚卸しであり、同梱バイナリ全体の配布条件の確認完了を宣言するものではありません。
+各コンポーネントの条件は、同梱する上流のライセンス本文・通知に従います。
 
 ## 主な同梱物
 
@@ -16,16 +16,16 @@ Gourdy独自部分のMITライセンスは、以下の第三者コード・モ�
 | [Qwen3.5-0.8B](https://huggingface.co/Qwen/Qwen3.5-0.8B) / [GGUF](https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF) | Q4_0、文章補正 | Apache-2.0 | licenses/qwen3.txt |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | b10976、CPU推論 | MIT | licenses/llama-cpp.txt |
 | LLVM OpenMP | llama.cppの同梱ライブラリ | Apache-2.0 WITH LLVM-exception | resources/runtime/llama/LICENSE-LLVM-OpenMP |
-| [GiNZA](https://github.com/megagonlabs/ginza) / ja_ginza | 5.2.1 / 5.2.0、日本語解析 | MIT、モデル・学習データの表示は別途確認対象 | Pythonのdist-infoとモデルのメタデータ |
+| [GiNZA](https://github.com/megagonlabs/ginza) / ja_ginza | 5.2.1 / 5.2.0、日本語解析 | MIT、モデル・学習データの表示を同梱 | licenses/release/GiNZA-*、ja_ginza-* |
 | [spaCy](https://github.com/explosion/spaCy) | 3.8.16、日本語解析基盤 | MIT | Pythonのdist-info |
-| [SudachiPy](https://github.com/WorksApplications/SudachiPy) / [SudachiDict](https://github.com/WorksApplications/SudachiDict) | 0.6.11 / core 20260723 | Apache-2.0、辞書由来データの条件あり | Pythonのdist-info、上流LEGALの補完が必要 |
+| [SudachiPy](https://github.com/WorksApplications/SudachiPy) / [SudachiDict](https://github.com/WorksApplications/SudachiDict) | 0.6.11 / core 20260723 | Apache-2.0、辞書由来データの条件あり | licenses/release/SudachiDict-20260723-LEGAL、SudachiPy-LICENSE |
 | [sounddevice](https://github.com/spatialaudio/python-sounddevice) / PortAudio | 0.5.5、音声関連依存 | MIT等 | Moonshineランタイムのdist-info等 |
-| [FFmpeg](https://ffmpeg.org/) | N-126574-g912208af28-20260915 | LGPL-3.0系 sharedビルド | licenses/ffmpeg、resources/runtime/ffmpeg/LICENSE.txt |
+| [FFmpeg](https://ffmpeg.org/) | 912208af28、Gourdy用共有ビルド | LGPL-2.1-or-later | licenses/ffmpeg、resources/runtime/ffmpeg/LICENSE.txt |
 
 Python依存の正確なバージョンは `requirements.lock.txt` と `requirements-streaming.txt` に記載します。
 ビルドに取り込んだPythonパッケージのメタデータと本文は、ランタイム内の `*.dist-info` に保持します。
 `licenses/python/` と `licenses/moonshine-dependencies/` にも取得済みの本文を複製します。
-certifiやtqdmなどのMPL対象部分についても、対応ソース提供の確認が必要です。
+certifi 2026.7.22、tqdm 4.70.1の対応ソースを、以下のソース配布物に含めます。
 ElectronのChromium第三者表示には、そのバイナリに含まれる依存の通知が含まれます。
 
 ## 任意ダウンロード
@@ -34,26 +34,21 @@ ElectronのChromium第三者表示には、そのバイナリに含まれる依�
 標準配布ZIPには含めません。Apache-2.0本文は `licenses/qwen3.txt` です。
 モデルを交換して再配布する場合は、交換先モデルの条件も確認してください。
 
-## FFmpegのビルド情報と対応ソース
+## 対応ソースと追加通知
 
-- 配布元：[BtbN FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)
-- 使用ソース：[FFmpeg 912208af28](https://github.com/FFmpeg/FFmpeg/tree/912208af28)
-- 元アーカイブ名：ffmpeg-master-latest-win64-lgpl-shared.zip
-- 元アーカイブSHA256：`40633DAB97D235F7DE4FF5B8E34E80D778D4E89F97EFB142B081127F3D7C8633`
-- 使用状態：変更なし。ffmpeg/ffprobeを外部プロセスとして実行。共有DLLは配布フォルダー内で交換可能。
+[0.7.0のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.0)に、`gourdy-0.7.0-corresponding-sources.zip` をアプリと同時に掲載します。
+上流URLと取得物のSHA256は、その中の `SOURCE-MANIFEST.json` に記録します。
 
-`latest` の取得先は内容が更新されるため、同じバイナリの再現には上記ハッシュと一致する保存アーカイブが必要です。
-ビルドの識別情報は配布物の `resources/runtime/ffmpeg/BUILD.txt` にも保持します。
-**対応ソース・依存ソース・正確なビルドスクリプトの提供セットは未整備です。一般公開前に完成させます。**
-上流リンクだけで配布義務の履行完了とは扱いません。[FFmpegの公式配布ガイド](https://www.ffmpeg.org/legal.html)を基に確認します。
+- FFmpeg：コミット `912208af28` の未変更ソース、`build-ffmpeg.sh`、ビルド条件を収録。GPL、nonfree、version3、外部ライブラリの自動検出を無効化し、共有DLLとしてビルドしています。`resources/runtime/ffmpeg/BUILD.txt` に識別情報を記載します。DLLは交換可能です。
+- Moonshine：v0.1.5（`234f60faa0eb388b01cdf7e60aca232af37aefda`）のソースを収録。プリビルドバイナリ、モデル、画像、テスト音声を除き、ソースの内容は変更していません。native内のEigen（MPL-2.0）のソースも含みます。
+- ONNX Runtime：同梱版1.23.2の第三者通知を `licenses/release/onnxruntime-1.23.2-ThirdPartyNotices.txt` に収録。使用するEigenのコミット `1d8b82b0740839c0de7f1242a3585e3390ff5f33` の対応ソースを別アーカイブで収録します。
+- certifi、tqdm：インストール版と一致するsdistを収録します。tqdmはMITとMPL-2.0の適用箇所を持ちます。
+- MinGW-w64：FFmpegのCランタイムおよびwinpthreadsに関する通知を `licenses/release/MinGW-w64-COPYRIGHT` に収録します。
+- SudachiDict：20260723のLEGAL全文、GiNZAとja_ginzaのREADME・モデル情報、chiVeのライセンスを `licenses/release/` に保持します。
+- Moonshine内部のEigen、kaldi-native-fbank、kissfft、nlohmann/json、utf8関連等の通知を `licenses/release/moonshine/` に収録します。
+- PortAudioの通知を `licenses/release/PortAudio-LICENSE.txt` に収録します。ASIO版DLLは同梱しません。
 
-## 公開前に残る確認
-
-1. FFmpegの上記対応ソースセットを用意し、バイナリと同じ配布場所で提供する。
-2. Moonshine native内部のEigen（MPL-2.0）、ONNX Runtime等の通知・対応ソースを取得版に対して照合する。
-3. SudachiDictのLEGAL、由来データの表示、ja_ginzaのモデル付随通知を補完する。
-4. Python・音声ライブラリの推移的依存とMPL対象の対応ソースを網羅的に照合する。
-
-取得済み本文の同梱と、この未完了一覧の明示は、未充足の配布条件そのものを免除するものではありません。
+FFmpegは別プロセスとして利用します。修正・置換・デバッグを妨げる追加の利用制限を設けません。
+対応ソースの提供は [FFmpegの公式配布ガイド](https://www.ffmpeg.org/legal.html) に沿って、バイナリと同じリリースで行います。
 
 MCP SDKを含むnpm実行時依存の固定バージョンは `package-lock.json`、ライセンス一覧と上流の本文は `licenses/npm/INDEX.md` および同フォルダー内に保持します。`node scripts/collect-npm-licenses.cjs` でインストール済みの実行時依存から再生成できます。

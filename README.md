@@ -47,9 +47,9 @@ APIキーやクラウド文字起こしサービスの契約は不要です。�
 
 ## ダウンロード
 
-ビルド済みアプリは、このリポジトリの **Releases** で `gourdy-0.7.0-windows-x64.zip` と `SHA256SUMS.txt` を配布します。
-ZIP全体を展開し、`Gourdy.exe` を起動します。PythonやNode.jsの別途インストールは不要です。
-ソースコードを公開しています。ビルド済みアプリは配布準備中で、公開済みリリースはありません。
+ビルド済みアプリは、[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.0) で `gourdy-0.7.0-windows-x64.zip` と `SHA256SUMS.txt` を配布します。
+ZIP全体を展開し、`Gourdy.exe` を起動します。PythonやNode.jsの別途インストールは不要です。Microsoft Visual C++ x64ランタイムが必要です（[導入ガイド](docs/public/getting-started.md)）。
+0.7.0はプレリリースです。署名はありません。クリーンなWindows環境での導入試験は未実施です。
 [導入・使い方](docs/public/getting-started.md) / [配布手順と公開前の確認事項](docs/public/release.md)
 
 ## 技術構成
