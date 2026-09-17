@@ -12,7 +12,8 @@
     "dist": "electron-builder --win --x64 --dir",
     "test:nlp": ".venv\\Scripts\\python.exe -X utf8 -m unittest discover -s test -p test_nlp.py -v",
     "release:zip": "python scripts/package-release.py",
-    "build:icons": "electron scripts/build-icons.cjs"
+    "build:icons": "electron scripts/build-icons.cjs",
+    "dist:installer": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "electron": "44.3.0",
@@ -99,6 +100,23 @@
     },
     "directories": {
       "output": "dist-ui"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "gourdy-${version}-windows-x64-setup.${ext}",
+      "installerLanguages": [
+        "ja_JP",
+        "en_US"
+      ],
+      "language": "1041",
+      "packElevateHelper": false
     }
   },
   "license": "MIT",

@@ -5,11 +5,24 @@
 対象はWindows x64です。Microsoft Visual C++ v14の最新x64ランタイムが必要です。未導入の場合は[Microsoft公式の案内](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)からx64版をインストールしてください。ARM64のネイティブ実行には対応していません。
 最低メモリ容量はまだ保証していません。モデル読み込み時には常駐時より多くのメモリを使用します。
 
-1. 公開リポジトリのReleasesからWindows用ZIPとSHA256SUMS.txtを取得します。
-2. PowerShellの `Get-FileHash .\gourdy-0.7.1-windows-x64.zip -Algorithm SHA256` でハッシュを照合します。
-3. ZIPを任意のフォルダーに展開します。exeだけを取り出さず、付属のresourcesなどを一緒に置きます。
-4. `Gourdy.exe` を起動します。開発版はコード署名されていません。提供元を確認できないファイルは実行しないでください。
-5. Windowsのマイクアクセスを許可し、歯車から「操作」で使用するマイクを選びます。
+### インストーラー版
+
+1. Releasesから `gourdy-0.7.1-windows-x64-setup.exe` と `SHA256SUMS.txt` を取得します。
+2. PowerShellの `Get-FileHash .\gourdy-0.7.1-windows-x64-setup.exe -Algorithm SHA256` でハッシュを照合します。
+3. 起動中のGourdyをトレイから終了し、インストーラーを実行します。インストール先はユーザーのLocalAppData配下が初期値で、変更できます。
+4. スタートメニューの「Gourdy」から起動します。標準モデル・実行環境は同梱されています。Visual C++ランタイムは上記の前提条件です。
+5. Windowsのマイクアクセスを許可し、歯車の「操作」でマイクを選びます。
+
+コード署名はありません。提供元とハッシュを確認してください。自動更新には対応していません。次版のインストーラーで同じ場所へ更新します。
+設定・辞書・履歴・追加取得モデルはAppDataに保存し、更新やアンインストール後も保持します。
+削除はWindowsの「インストールされているアプリ」から行います。保存データも削除する場合は、後述の保存先を別途削除してください。
+
+### ZIP版
+
+インストールせず使う場合は `gourdy-0.7.1-windows-x64.zip` を取得し、SHA256を照合して全体を展開します。
+exeだけ取り出さず、付属のresourcesなどを一緒に置き、`Gourdy.exe` を起動してください。
+ZIP版も設定はAppData保存です。インストーラー版と同じ設定・履歴を使用します。
+
 
 ## 話しながら入力する
 

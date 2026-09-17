@@ -54,3 +54,14 @@ package.jsonとpackage-lock.json、READMEと配布案内を同時に更新しま
 ### アプリアイコン
 
 `src/assets/gourdy.svg` が原稿です。`npm run build:icons` でPNGとWindows用の複数解像度ICO、README用の画像を生成します。Electronの非表示レンダラーを使うため、Windowsデスクトップで実行してください。生成物もリポジトリで管理します。実行ファイルのアイコン埋め込みを有効にし、コード署名のみ無効にしています。
+
+## インストーラー
+
+Windows用NSISインストーラーは、検証済みの配布ZIPを新しいフォルダーへ展開し、その内容から生成できます。起動テスト後のフォルダーはPythonキャッシュが増えるため、そのまま再包装しないでください。
+
+```powershell
+npm run dist:installer -- --prepackaged dist-staged/win-unpacked --config.directories.output=dist-installer
+```
+
+`package.json`の`build.nsis`でユーザー単位・保存データ保持・スタートメニュー登録を設定しています。
+インストール中はGourdyを終了してください。インストーラーによるVisual C++ランタイムの追加導入や自動更新は行いません。
