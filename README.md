@@ -29,12 +29,13 @@ APIキーやクラウド文字起こしサービスの契約は不要です。
 
 ## ダウンロード
 
-[バージョン0.7.1のリリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1)から、使い方に合う形式を選べます。
+[バージョン0.7.1のリリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1)でZIP版を配布しています。
+インストーラーは公開準備中です。
 どちらも標準モデルと実行環境を同梱しており、PythonやNode.jsの追加インストールは不要です。
 
 | 配布形式 | ファイル | 起動方法 |
 | --- | --- | --- |
-| インストーラー版 | [gourdy-0.7.1-windows-x64-setup.exe](https://github.com/aToy0m0/gourdy/releases/download/v0.7.1/gourdy-0.7.1-windows-x64-setup.exe) | インストール後、スタートメニューの「Gourdy」から起動 |
+| インストーラー版 | 公開準備中 | インストール後、スタートメニューの「Gourdy」から起動 |
 | ZIP版 | [gourdy-0.7.1-windows-x64.zip](https://github.com/aToy0m0/gourdy/releases/download/v0.7.1/gourdy-0.7.1-windows-x64.zip) | 全体を展開し、同梱の `Gourdy.exe` を起動 |
 
 対象はWindows x64です。

@@ -1,16 +1,17 @@
 # 配布とリリース
 
 現行版は **0.7.1（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1) でWindows x64用インストーラー・ZIPと対応ソースを配布します。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1) でWindows x64用ZIPと対応ソースを配布しています。
+インストーラーは公開準備中です。
 
 ## 配布物
 
-- `gourdy-0.7.1-windows-x64-setup.exe`：ユーザー単位のインストーラー。標準モデル・実行環境を同梱し、スタートメニューへ登録。
+- `gourdy-0.7.1-windows-x64-setup.exe`：公開準備中。ユーザー単位のインストーラー。標準モデル・実行環境を同梱し、スタートメニューへ登録。
 - `gourdy-0.7.1-windows-x64.zip`：アプリ、標準モデル、依存ランタイム、公開ドキュメント、ライセンス。
 - `gourdy-0.7.1-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
-- `SHA256SUMS.txt`：インストーラーと2つのZIPのSHA256。
+- `SHA256SUMS.txt`：公開済み配布物のSHA256。
 
-通常はインストーラーを実行します。ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
+インストーラー公開まではZIP版を使用します。ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
 追加のコマンドモデルは同梱せず、有効化したときに取得します。
 
 ## 作成

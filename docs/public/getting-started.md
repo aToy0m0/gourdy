@@ -7,6 +7,8 @@
 
 ### インストーラー版
 
+現在は公開準備中です。公開までは下記のZIP版を利用してください。以下は公開後の導入手順です。
+
 1. Releasesから `gourdy-0.7.1-windows-x64-setup.exe` と `SHA256SUMS.txt` を取得します。
 2. PowerShellの `Get-FileHash .\gourdy-0.7.1-windows-x64-setup.exe -Algorithm SHA256` でハッシュを照合します。
 3. 起動中のGourdyをトレイから終了し、インストーラーを実行します。インストール先はユーザーのLocalAppData配下が初期値で、変更できます。
