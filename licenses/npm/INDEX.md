@@ -61,6 +61,7 @@ Generated from package-lock.json production dependencies. License texts retain u
 | jose | 6.2.12 | MIT | jose-6.2.12.txt |
 | json-schema-traverse | 1.0.0 | MIT | json-schema-traverse-1.0.0.txt |
 | json-schema-typed | 8.0.2 | BSD-2-Clause | json-schema-typed-8.0.2.txt |
+| jsonc-parser | 3.3.1 | MIT | jsonc-parser-3.3.1.txt |
 | math-intrinsics | 1.1.0 | MIT | math-intrinsics-1.1.0.txt |
 | media-typer | 1.1.1 | MIT | media-typer-1.1.1.txt |
 | merge-descriptors | 2.0.0 | MIT | merge-descriptors-2.0.0.txt |
@@ -93,6 +94,7 @@ Generated from package-lock.json production dependencies. License texts retain u
 | side-channel-list | 1.0.1 | MIT | side-channel-list-1.0.1.txt |
 | side-channel-map | 1.0.1 | MIT | side-channel-map-1.0.1.txt |
 | side-channel-weakmap | 1.0.2 | MIT | side-channel-weakmap-1.0.2.txt |
+| smol-toml | 1.8.0 | BSD-3-Clause | smol-toml-1.8.0.txt |
 | statuses | 2.0.2 | MIT | statuses-2.0.2.txt |
 | toidentifier | 1.0.1 | MIT | toidentifier-1.0.1.txt |
 | type-is | 2.1.0 | MIT | type-is-2.1.0.txt |

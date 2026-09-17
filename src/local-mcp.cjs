@@ -22,7 +22,7 @@ class LocalMcp {
   await this.close();this.server=server;this.status={state:'listening',port,url:`http://127.0.0.1:${port}/mcp`};server.on('error',e=>{this.status={state:'error',error:e.message};this.onError(e)});
  }
  async close(){const server=this.server;this.server=null;if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}this.status={state:'disabled'};}
- configuration(){if(this.status.state!=='listening')throw new Error('MCP接続が有効になっていません。');return {mcpServers:{gourdy:{url:this.status.url,headers:{Authorization:'Bearer '+this.token}}}};}
+ configuration(){if(this.status.state!=='listening')throw new Error('MCP接続が有効になっていません。');return {mcpServers:{gourdy:{type:'http',url:this.status.url,headers:{Authorization:'Bearer '+this.token}}}};}
  async handle(req,res,port){
   const reject=(code,message)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify({error:message}));};
   if(!['127.0.0.1:'+port,'localhost:'+port].includes(req.headers.host)||req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin))return reject(403,'Local origin required');

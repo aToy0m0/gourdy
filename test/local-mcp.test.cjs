@@ -7,7 +7,7 @@ test('MCP authenticates, rejects remote origins, exposes jobs and disables clean
  assert.equal((await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
  assert.equal((await fetch(url,{method:'POST',headers:{...headers,Origin:'https://example.com','Content-Type':'application/json'},body:'{}'})).status,403);
  assert.equal(await new Promise((resolve,reject)=>{const req=require('node:http').request(url,{method:'POST',headers:{...headers,Host:'evil.example','Content-Type':'application/json'}},res=>{res.resume();resolve(res.statusCode)});req.on('error',reject);req.end('{}')}),403);
- const transport=new StreamableHTTPClientTransport(new URL(url),{requestInit:{headers}});await client.connect(transport);assert.equal((await client.listTools()).tools.length,5);
+ const transport=new StreamableHTTPClientTransport(new URL(url),{requestInit:{headers}});await client.connect(transport);assert.deepEqual((await client.listTools()).tools.map(t=>t.name),['prepare_file','start_transcription','get_transcription','list_transcriptions','cancel_transcription']);
  const start=await client.callTool({name:'start_transcription',arguments:{id:'job-1'}});assert.equal(JSON.parse(start.content[0].text).state,'running');assert.deepEqual(calls,[{id:'job-1'}]);
  assert.equal((await client.callTool({name:'get_transcription',arguments:{id:'missing'}})).isError,true);
  assert.equal((await client.callTool({name:'start_transcription',arguments:{id:2}})).isError,true);

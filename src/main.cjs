@@ -27,7 +27,12 @@ app.setPath('userData', path.join(app.getPath('appData'), 'local-dictation-strea
 if (process.env.DICTATION_TEST_DATA) app.setPath('userData', process.env.DICTATION_TEST_DATA);
 const root = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
 let mini, editor, tray, store, live, phase = 'idle', shuttingDown = false, latest = null, saving = Promise.resolve(), closingEditor = false;
+let handlersRegistered;
+const handlersReady=new Promise(resolve=>{handlersRegistered=resolve;});
 const {LocalMcp,localMediaPath}=require('./local-mcp.cjs');
+const mcpClients=require('./mcp-clients.cjs');
+const mcpClientPaths=()=>({home:app.getPath('home'),appData:app.getPath('appData'),codexHome:process.env.CODEX_HOME});
+let installingMcp=false;
 let mcpServer,mediaId=null;
 let mediaController=null,mediaDone=null,meetings,recordings,commandSession=null;
 let commandModel,commandDownload=null,downloadRequest=null;
@@ -66,6 +71,7 @@ function visibleMiniBounds(bounds){
   return {...bounds,x:Math.max(area.x,Math.min(bounds.x,area.x+area.width-bounds.width)),y:Math.max(area.y,Math.min(bounds.y,area.y+area.height-bounds.height))};
 }
 async function ensureMini() {
+  await handlersReady;
   if(mini && !mini.isDestroyed())return;
   const saved=store.data.miniBounds;
   if(saved&&(!['x','y','width','height'].every(k=>Number.isInteger(saved[k]))||saved.width<140||saved.width>420||Math.abs(saved.height-Math.round(saved.width*348/280))>1))throw new Error('保存した録音画面のサイズが不正です。');
@@ -133,6 +139,7 @@ function updateContinuation(corrected){
 }
 async function showMini() {await ensureMini();mini.showInactive();mini.moveTop();}
 async function showSettings(tab='operation') {
+  await handlersReady;
   if(editor && !editor.isDestroyed()){editor.show();editor.focus();send(editor,'select-tab',tab);return;}
   editor=new BrowserWindow({icon:appIcon,width:680,height:700,minWidth:420,minHeight:450,frame:false,show:false,minimizable:false,title:'Gourdy - 設定',backgroundColor:'#ffffff',skipTaskbar:!store.data.settings.showTaskbar,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
@@ -252,6 +259,11 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     },app.getVersion(),report);
     try{await mcpServer.configure(store.data.settings);}catch(e){mcpServer.status={state:'error',error:e.message};report(e);}
     ipcMain.handle('mcp-copy-configuration',event=>{trusted(event,'settings');clipboard.writeText(JSON.stringify(mcpServer.configuration(),null,2));});
+    ipcMain.handle('mcp-clients',event=>{trusted(event,'settings');return mcpClients.targets(mcpClientPaths()).map(({id,name,file})=>({id,name,file}));});
+    ipcMain.handle('mcp-install-clients',async(event,ids)=>{
+      trusted(event,'settings');if(installingMcp)throw new Error('MCP設定を追記中です。');
+      installingMcp=true;try{return await mcpClients.install(ids,mcpClientPaths(),mcpServer.configuration().mcpServers.gourdy);}finally{installingMcp=false;}
+    });
     ipcMain.handle('snapshot',event=>{trusted(event,'settings');return snapshot();});
     ipcMain.handle('mini-settings',event=>{trusted(event,'mini');return store.data.settings;});
     ipcMain.handle('mini-info',(event,text,open)=>{trusted(event,'mini');if(typeof text!=='string'||text.length>16000||typeof open!=='boolean')throw new Error('情報の形式が不正です。');return updateInfo(text,open);});
@@ -455,6 +467,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     });
     ipcMain.handle('force-stop',event=>{trusted(event,'mini');recovering=true;inputController?.abort();controller?.abort();if(live){live.blocked='再開のため中断';live.worker.fail(new Error('再開のため録音を中断しました。'));}});
     ipcMain.handle('cancel',event=>{trusted(event,'mini');controller?.abort();});
+    handlersRegistered();
     await ensureMini();if(!process.argv.includes('--autostart')){mini.showInactive();mini.moveTop();}prepareVoice();
     if(store.data.settings.imeAutoImport){try{const result=await importIme(true);if(result.importStats.overflow||result.importStats.skipped)report(new Error(importMessage(result.importStats)));}catch(error){report(error);}}
     if(store.data.settings.commandEnabled&&!registerCommand(store.data.settings.commandShortcut))report(new Error('コマンドショートカットが他のアプリで使われています。設定で変更してください。'));

@@ -2,6 +2,8 @@ const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('dictation',{
   miniInfo:(text,open=false)=>ipcRenderer.invoke('mini-info',text,open),
   copyMcpConfiguration:()=>ipcRenderer.invoke('mcp-copy-configuration'),
+  mcpClients:()=>ipcRenderer.invoke('mcp-clients'),
+  installMcpClients:ids=>ipcRenderer.invoke('mcp-install-clients',ids),
   miniLayout:height=>ipcRenderer.invoke('mini-layout',height),
   miniGesture:(action,kind)=>ipcRenderer.invoke('mini-gesture',action,kind),
   miniShape:(rects,size)=>ipcRenderer.invoke('mini-shape',rects,size),

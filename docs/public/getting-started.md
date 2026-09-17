@@ -34,7 +34,8 @@
 - **辞書**：表記と読みを登録。編集は自動保存。個別削除、辞書ファイルの取り込み・書き出し。
 - **履歴**：コピー、貼り付け、個別削除、録音の再認識。
 - **ファイル読込**：音声・動画の読み込み、プレビュー、文字起こし・再開。
-- **その他設定**：アクセントカラー、履歴の保存件数・文字数、起動時実行、タスクバー、MCP接続、データ削除。
+- **MCP接続（開発中）**：ファイル文字起こし専用の接続と、接続先アプリへの設定追記。
+- **その他設定**：アクセントカラー、履歴の保存件数・文字数、起動時実行、タスクバー、データ削除。
 - **アプリ情報**：バージョン、使用モデル、保存先。
 
 ## 会議の音声・動画
@@ -74,7 +75,21 @@
 ## ローカルMCP接続
 
 初期状態で `http://127.0.0.1:55888/mcp` のStreamable HTTP接続が有効です。Gourdyの起動中だけ接続できます。stdio方式は提供しません。
-「その他設定」で無効化・ポート変更ができます。「接続設定をコピー」で認証トークン付きの設定例を取得し、MCPクライアントに登録してください。設定例の形式はクライアントによって異なりますが、URLとAuthorizationヘッダーは共通です。コピーした認証トークンは公開しないでください。
+「MCP接続」タブで無効化・ポート変更ができます。ファイル専用で、マイク録音やリアルタイム入力の操作は公開しません。
+接続先をトグルで選び「MCP設定を追記」を押すと、次のユーザー共通設定に `gourdy` を追加します。
+
+| 接続先 | Windowsの標準保存先 | 設定形式 |
+| --- | --- | --- |
+| Claude Code | `%USERPROFILE%/.claude.json` | `mcpServers.gourdy`、HTTP |
+| Codex | `%USERPROFILE%/.codex/config.toml`（`CODEX_HOME` 指定時はそちら） | `mcp_servers.gourdy`、`http_headers` |
+| VS Code（標準プロファイル） | `%APPDATA%/Code/User/mcp.json` | `servers.gourdy`、HTTP |
+| Cursor | `%USERPROFILE%/.cursor/mcp.json` | `mcpServers.gourdy`、URLとheaders |
+
+ClaudeはClaude Code向けです。Claude Desktop、VS Codeの名前付きプロファイル・Portable版・Insiders版、各アプリの独自ユーザーデータディレクトリはこの自動追記の対象外です。
+既存の設定・コメントを保持し、変更前のファイルを同じフォルダーへ `.gourdy-<識別子>.bak` として保存します。同一設定は追加せず、同名の異なる設定や構文エラーは対象ごとに表示します。ポートなどを変更した場合は接続先の `gourdy` 項目を確認・削除してから再度追記してください。
+設定とバックアップには認証トークンが含まれます。公開・共有しないでください。Gourdyを起動したまま、接続先アプリを再起動し、必要なツール承認を行ってください。「接続設定をコピー」はClaude Code・Cursor用の手動設定にも使えます。
+
+設定仕様の確認元：[Claude Code](https://code.claude.com/docs/en/mcp)、[Codex](https://developers.openai.com/codex/mcp)、[VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers)、[Cursor](https://prod.cursor.com/help/customization/mcp)。
 
 利用できるツール:
 
