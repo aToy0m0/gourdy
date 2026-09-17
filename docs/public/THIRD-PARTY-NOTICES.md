@@ -1,6 +1,6 @@
 # 第三者コンポーネントのライセンス
 
-okosy独自部分のMITライセンスは、以下の第三者コード・モデル・辞書の権利を置き換えません。
+Gourdy独自部分のMITライセンスは、以下の第三者コード・モデル・辞書の権利を置き換えません。
 配布物には上流の著作権表示・ライセンス本文を保持します。個々の著作権者は各本文を参照してください。
 この一覧は公開準備中の棚卸しであり、同梱バイナリ全体の配布条件の確認完了を宣言するものではありません。
 
@@ -9,6 +9,7 @@ okosy独自部分のMITライセンスは、以下の第三者コード・モデ
 | コンポーネント | 用途・版 | 主なライセンス | 配布物内の本文 |
 | --- | --- | --- | --- |
 | [Electron](https://github.com/electron/electron) / Chromium | Electron 44.3.0、デスクトップUI | MITおよび各第三者条件 | LICENSE.electron.txt / LICENSES.chromium.html |
+| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | 1.30.0、ローカルMCP接続 | MIT | licenses/npm/_modelcontextprotocol_sdk-1.30.0.txt |
 | [CPython](https://www.python.org/) | 3.12.10、埋め込み実行環境 | PSF Licenseおよび同梱第三者条件 | resources/runtime/python/LICENSE.txt |
 | [Moonshine Voice](https://github.com/moonshine-ai/moonshine) | 0.1.5、音声認識 | 本体MIT、native依存は別条件 | licenses/moonshine.txt、runtimeのdist-info |
 | [Moonshine Streaming](https://github.com/moonshine-ai/moonshine) | Small Streaming Japanese、quantized_26_08_23 | MIT（ストリーミングモデル） | licenses/moonshine.txt |
@@ -54,3 +55,5 @@ ElectronのChromium第三者表示には、そのバイナリに含まれる依�
 4. Python・音声ライブラリの推移的依存とMPL対象の対応ソースを網羅的に照合する。
 
 取得済み本文の同梱と、この未完了一覧の明示は、未充足の配布条件そのものを免除するものではありません。
+
+MCP SDKを含むnpm実行時依存の固定バージョンは `package-lock.json`、ライセンス一覧と上流の本文は `licenses/npm/INDEX.md` および同フォルダー内に保持します。`node scripts/collect-npm-licenses.cjs` でインストール済みの実行時依存から再生成できます。

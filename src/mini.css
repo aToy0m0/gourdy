@@ -1,3 +1,26 @@
-:root{font:11px 'Yu Gothic UI',Meiryo,sans-serif;color:#222;--accent:#262626;--icon-active-background:#dedede}*{box-sizing:border-box}body{margin:0;background:white;overflow:hidden;border:1px solid #e4e4e4;border-radius:10px;height:112px}header{height:27px;padding:0 10px 0 14px;display:flex;align-items:center;background:#f6f6f6;color:#707070;-webkit-app-region:drag}header span{flex:1}button{-webkit-app-region:no-drag;cursor:pointer;border:0;background:none;color:#707070;display:grid;place-items:center;padding:0}header button{width:24px;height:26px;font-size:18px}main{display:flex;align-items:center;gap:16px;padding:12px 16px;height:83px}.icon-button{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:#f0f0f0;color:#222}.icon-button:focus-visible{outline:2px solid #777;outline-offset:-3px}#record.active{background:var(--icon-active-background)}svg{width:24px;height:24px}.middle{min-width:0;flex:1}#wave{height:26px;display:flex;align-items:center;justify-content:space-between;gap:3px}#wave i{width:4px;height:3px;display:block;flex-shrink:0;border-radius:2px;background:#b8b8b8}#status{font-size:11px;line-height:1.4;white-space:pre-line;margin-top:4px;color:#707070;overflow:hidden;max-height:31px}body.error #status{color:#a93232}button:disabled{opacity:.5;cursor:wait}
+:root{font:11px 'Yu Gothic UI',Meiryo,sans-serif;color:#222;--accent:#262626;--icon-active-background:#dedede}
+*{box-sizing:border-box}body{margin:0;background:transparent;overflow:hidden;user-select:none}main{position:relative;width:280px;height:348px;transform:scale(var(--mini-scale,.75));transform-origin:top left}
+#shell{position:absolute;left:16px;top:76px;width:240px;height:230px;fill:#fff;filter:drop-shadow(0 2px 4px #00000012);pointer-events:none}
+#drag-handle{position:absolute;left:20px;top:76px;width:180px;height:180px;border-radius:50%;cursor:move;touch-action:none}
+button{-webkit-app-region:no-drag;cursor:pointer;border:0;color:#222;display:grid;place-items:center;padding:0;background:none}
+button:focus-visible{outline:2px solid #777;outline-offset:-4px}button:disabled{opacity:.45;cursor:wait}
+.icon-button{position:absolute;border-radius:50%;background:#f0f0f0;transition:background-color 120ms}
+#record{left:45px;top:101px;width:132px;height:132px}#record svg{width:60px;height:60px}#record.active{background:var(--icon-active-background)}
+#settings{left:173px;top:222px;width:62px;height:62px}#settings svg{width:30px;height:30px}
+#wave{position:absolute;left:44px;top:10px;width:136px;height:52px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+#wave i{width:5px;height:3px;border-radius:3px;background:#b8b8b8;transition:height 80ms linear,background-color 120ms}
+#hide{position:absolute;left:187px;top:74px;width:28px;height:28px;border-radius:50%;background:#fff;color:#555;font:21px Arial;opacity:0;transition:opacity 120ms;box-shadow:0 2px 5px #00000012}
+body:hover #hide,#hide:focus-visible{opacity:1}
+[hidden]{display:none!important}#continuation-actions{position:absolute;left:20px;top:318px;display:flex;align-items:center;gap:8px;height:26px;padding:0 8px;border-radius:13px;background:#fff}
+#copy-continuation{width:26px;height:26px}#copy-continuation svg{width:15px;height:15px}#insert-continuation{height:26px;font:inherit}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
-#wave i{transition:height 80ms linear,background-color 120ms}
+#resize-handle{position:absolute;left:224px;top:280px;width:22px;height:22px;border-radius:50%;background:#fff;color:#888;cursor:nwse-resize;touch-action:none;opacity:0}body:hover #resize-handle,#resize-handle:focus-visible{opacity:1}
+
+.icon-button{background:var(--icon-background,#e4e4e4);color:#222}#wave i{background:var(--wave-background,#777)}body.recording #wave i{background:var(--wave-active-background,#444)}
+
+#shell{filter:drop-shadow(0 2px 4px #00000020)}
+
+
+#info{left:40px;top:250px;width:48px;height:48px}#info svg{width:24px;height:24px}
+#shortcut-tip{position:absolute;left:10px;top:64px;max-width:260px;padding:6px 10px;border-radius:8px;background:#262626;color:#fff;font-size:max(11px,calc(11px / var(--mini-scale,.6)));line-height:1.4;white-space:normal;overflow-wrap:anywhere;pointer-events:none;z-index:3}

@@ -1,10 +1,12 @@
 """Persistent offline recognizer: PCM in stdin, incremental results in stdout."""
-import sys, json, base64, array
+import sys, json, base64, array, time
+started_at=time.perf_counter()
 from pathlib import Path
 config = json.loads(sys.stdin.readline())
 sys.path.insert(0, config['runtime'])
 from moonshine_voice import Transcriber, ModelArch
 from moonshine_voice.transcriber import Error
+imported_at=time.perf_counter()
 
 def emit(value):
     print(json.dumps(value, ensure_ascii=False), flush=True)
@@ -19,7 +21,7 @@ try:
                      options={'max_tokens_per_second': 13.0}) as transcriber:
         transcriber.add_listener(listener)
         transcriber.start()
-        emit({'ready': True})
+        emit({'ready': True, 'timing': {'importMs': (imported_at-started_at)*1000, 'modelMs': (time.perf_counter()-imported_at)*1000}})
         audio_seconds = 0.0
         for raw in sys.stdin:
             request = json.loads(raw)

@@ -1,6 +1,6 @@
 {
   "name": "local-dictation-streaming",
-  "version": "0.5.1",
+  "version": "0.7.0",
   "private": true,
   "description": "Windows向けローカル音声入力",
   "main": "src/main.cjs",
@@ -11,7 +11,8 @@
     "predist": "npm run build:native",
     "dist": "electron-builder --win --x64 --dir",
     "test:nlp": ".venv\\Scripts\\python.exe -X utf8 -m unittest discover -s test -p test_nlp.py -v",
-    "release:zip": "python scripts/package-release.py"
+    "release:zip": "python scripts/package-release.py",
+    "build:icons": "electron scripts/build-icons.cjs"
   },
   "devDependencies": {
     "electron": "44.3.0",
@@ -20,7 +21,7 @@
   },
   "build": {
     "appId": "jp.localdictation.streaming",
-    "productName": "okosy",
+    "productName": "Gourdy",
     "asar": false,
     "extraFiles": [
       "README.md",
@@ -80,15 +81,21 @@
       "!src/transcribe.cjs",
       "!src/**/*.cs",
       "!src/**/__pycache__/**",
-      "!src/style.css"
+      "!src/style.css",
+      "!**/*.map"
     ],
     "win": {
       "target": "dir",
-      "signAndEditExecutable": false
+      "signExecutable": false,
+      "icon": "src/assets/gourdy.ico",
+      "executableName": "Gourdy"
     },
     "directories": {
       "output": "dist-ui"
     }
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
 }

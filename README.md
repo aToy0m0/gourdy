@@ -1,14 +1,18 @@
 <div align="center">
 
-# okosy
+<img src="docs/public/assets/gourdy.png" width="96" height="96" alt="Gourdy アイコン">
+
+# Gourdy
+
+読み方：ごーでぃ
 
 **日本語を、話したそばから文字に。**
 
 日本語文字起こし · リアルタイム入力 · 完全無料（有料機能なし） · ローカル完結
 
-![okosyの録音ウィンドウ。マイク、音量バー、設定ボタン](docs/public/assets/transcription.png)
+![Gourdyの録音ウィンドウ。マイク、音量バー、設定ボタン](docs/public/assets/transcription.png)
 
-[![Version](https://img.shields.io/badge/version-0.5.1-262626)](docs/public/release.md)
+[![Version](https://img.shields.io/badge/version-0.7.0-262626)](docs/public/release.md)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078D4)](docs/public/getting-started.md)
 [![License](https://img.shields.io/badge/app_license-MIT-4b7152)](LICENSE)
 [![Free](https://img.shields.io/badge/有料機能-なし-262626)](#できること)
@@ -17,8 +21,8 @@
 
 </div>
 
-okosyは、Windowsで使う**音声インターフェイスの日本語IME**を目指すアプリです。
-入力欄にカーソルを置いて **Win + J**。話している途中から文字が入り、認識の変化に合わせて末尾を修正します。
+Gourdyは、Windowsで使う**音声インターフェイスの日本語IME**を目指すアプリです。
+入力欄にカーソルを置いて **右Ctrlを押して離す**。話している途中から文字が入り、認識の変化に合わせて末尾を修正します。
 APIキーやクラウド文字起こしサービスの契約は不要です。音声認識・日本語解析・文章補正は端末内で処理します。
 初回の開発環境準備と任意モデルのダウンロードにはネット接続が必要です。
 
@@ -43,9 +47,9 @@ APIキーやクラウド文字起こしサービスの契約は不要です。�
 
 ## ダウンロード
 
-公開後は、このリポジトリの **Releases** で `okosy-0.5.1-windows-x64.zip` と `SHA256SUMS.txt` を配布します。
-ZIP全体を展開し、`okosy.exe` を起動します。PythonやNode.jsの別途インストールは不要です。
-現在は公開準備段階で、公開済みリリースはありません。
+ビルド済みアプリは、このリポジトリの **Releases** で `gourdy-0.7.0-windows-x64.zip` と `SHA256SUMS.txt` を配布します。
+ZIP全体を展開し、`Gourdy.exe` を起動します。PythonやNode.jsの別途インストールは不要です。
+ソースコードを公開しています。ビルド済みアプリは配布準備中で、公開済みリリースはありません。
 [導入・使い方](docs/public/getting-started.md) / [配布手順と公開前の確認事項](docs/public/release.md)
 
 ## 技術構成
@@ -63,7 +67,7 @@ ZIP全体を展開し、`okosy.exe` を起動します。PythonやNode.jsの別�
 
 ## ライセンス
 
-okosyの独自コード・独自ドキュメントは [MIT](LICENSE) です。
+Gourdyの独自コード・独自ドキュメントは [MIT](LICENSE) です。
 モデル、推論エンジン、辞書、FFmpeg、Electronなどの第三者コンポーネントには、それぞれのライセンスが適用されます。
 MITの表示だけで同梱物全体の条件を置き換えることはできません。
 [第三者ライセンス・対応ソースの確認状況](docs/public/THIRD-PARTY-NOTICES.md)を参照してください。

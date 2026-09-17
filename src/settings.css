@@ -15,7 +15,7 @@ html,body{height:100%;overflow:hidden}main{height:100vh;min-height:0;display:fle
 .body{display:grid;grid-template-columns:116px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:0 24px;padding:12px 20px 20px}
 #status{grid-column:1/-1}nav{grid-column:1;grid-row:2;align-self:start;flex-direction:column;padding:4px;gap:4px;background:#f6f6f6}
 nav button{flex:none;width:100%;text-align:left;padding:0 16px}.indicator{top:0;left:4px;width:calc(100% - 8px);transition:transform 180ms ease-out,height 180ms ease-out}
-.panels{grid-column:2;grid-row:2;min-width:0;min-height:0;display:flex;flex-direction:column}section{padding-top:8px}.ime-import button{margin-bottom:8px}.switch-row{gap:12px}.switch-row input{flex-shrink:0}
+.panels{grid-column:2;grid-row:2;min-width:0;min-height:0;display:flex;flex-direction:column}.panels>section{padding:8px 16px 12px 0}.ime-import button{margin-bottom:8px}.switch-row{gap:12px}.switch-row input{flex-shrink:0}
 @media(max-width:540px){.body{grid-template-columns:86px minmax(0,1fr);gap:0 12px;padding:12px}nav button{padding:0 10px}.dots{gap:8px}.limits label{flex-wrap:wrap}.limits input{width:110px}.entry-actions{gap:2px}.term-table td{padding:8px 2px}.term-table input{padding:8px 4px}}
 @media(prefers-reduced-motion:reduce){.indicator{transition:none}}
 
@@ -27,3 +27,9 @@ nav button{flex:none;width:100%;text-align:left;padding:0 16px}.indicator{top:0;
 .replacement-heading{margin-top:28px}.recordings-section{margin:20px 0;padding:12px 0;border-top:1px solid #eee;border-bottom:1px solid #eee}.recordings-section>summary{cursor:pointer;margin-bottom:10px}.recording-entry{padding:12px 0;border-bottom:1px solid #eee}.recording-entry p{overflow-wrap:anywhere}.recording-actions{display:flex;flex-wrap:wrap;gap:8px}.recording-entry audio{width:100%;max-width:100%;margin-top:10px}#replacement-list input{width:100%;min-width:0}#meeting-parts details details{padding:8px 0;border:0}
 
 .microphone-options{padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid #e5e5e5}#microphone-device{display:block;width:100%;min-width:0;font:inherit;margin-top:8px;padding:10px 12px;border:1px solid #ddd;border-radius:6px;background:white;color:inherit}.input-label{font-size:13px}#microphone-meter{height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;margin:12px 0 8px}#microphone-meter span{display:block;height:100%;width:0;background:var(--accent);transition:width 80ms linear}#microphone-status{display:block;overflow-wrap:anywhere}.microphone-options button{white-space:nowrap}
+
+#subtitle-text{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}
+
+.dictionary-tabs{display:flex;gap:4px;background:#f6f6f6;padding:4px;border-radius:6px;margin-bottom:20px}.dictionary-tabs button{flex:1;border:0;background:transparent;color:#666;padding:9px 6px;border-radius:4px;font:inherit}.dictionary-tabs [aria-selected=true]{background:var(--accent);color:var(--on-accent)}#dictionary-replacements>small{display:block;margin-top:16px}.mcp-options{border-top:1px solid #ddd;margin-top:24px;padding-top:8px}.mcp-options small{display:block;margin-top:8px}#mcp-port{max-width:140px}#mcp-url{overflow-wrap:anywhere}#about .app-info{border:0;margin:0}.noise-threshold{margin-top:20px}.noise-threshold input{padding:0}#noise-threshold-value{float:right;color:#707070}.body{grid-template-columns:126px minmax(0,1fr)}nav button{padding:0 12px}
+
+.dictionary-actions{justify-content:flex-end}

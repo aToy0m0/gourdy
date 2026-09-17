@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
@@ -7,9 +7,10 @@ using System.Windows.Automation;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
 
-class StreamRequest {public string kind {get;set;} public string text {get;set;} public int[] shortcut {get;set;}}
+class StreamRequest {public string kind {get;set;} public string text {get;set;} public string prior {get;set;} public int[] shortcut {get;set;}}
 // One lightweight process per recording. Hooks observe real user edits independently
 // of the application's accessibility text/caret update cadence.
+class NoInputTargetException : Exception {public NoInputTargetException(string message):base(message){}}
 static class RealtimeInput {
   const uint Tag=0x6F6B6F73;
   delegate IntPtr Hook(int code,IntPtr message,IntPtr data);
@@ -73,13 +74,13 @@ static class RealtimeInput {
       try{
         var e=AutomationElement.FocusedElement;
         if(e!=null&&LiveWriter.BelongsToWindow(e,window)){
-          if(e.Current.IsPassword)throw new Exception("パスワード欄には入力できません。");
+          if(e.Current.IsPassword)throw new NoInputTargetException("パスワード欄には入力できません。");
           if(e.Current.ControlType!=ControlType.Window&&e.Current.ControlType!=ControlType.Pane)return e;
         }
       }catch(ElementNotAvailableException){}
       Thread.Sleep(20);
     }
-    throw new Exception("入力欄を確認できません。入力先を確認してください。");
+    throw new NoInputTargetException("入力欄を確認できません。入力先を確認してください。");
   }
   static INPUT Key(ushort key,ushort scan,uint flags){return new INPUT{type=1,data=new UNION{keyboard=new KEYBOARD{key=key,scan=scan,flags=flags,extra=new UIntPtr(Tag)}}};}
   static void Emit(object data){Console.WriteLine(new JavaScriptSerializer().Serialize(data));}
@@ -100,6 +101,7 @@ static class RealtimeInput {
       var reader=new Thread(()=>{try{string request;while((request=Console.ReadLine())!=null)requests.Add(request);}finally{changed="入力を中断しました。";requests.CompleteAdding();}});
       reader.IsBackground=true;reader.Start();
       foreach(string line in requests.GetConsumingEnumerable()){
+        bool mayHaveWritten=false,deliveryUncertain=false;string attemptWritten=written;AutomationElement attemptEditor=null;
         try{
           var r=new JavaScriptSerializer().Deserialize<StreamRequest>(line);
           if(r.kind=="start"){
@@ -108,7 +110,7 @@ static class RealtimeInput {
             bool editable=e.Current.ControlType==ControlType.Edit||e.Current.ControlType==ControlType.Custom;
             if(e.TryGetCurrentPattern(ValuePattern.Pattern,out v))editable=!((ValuePattern)v).Current.IsReadOnly;
             else if(e.TryGetCurrentPattern(TextPattern.Pattern,out t))editable=Object.Equals(((TextPattern)t).DocumentRange.GetAttributeValue(TextPattern.IsReadOnlyAttribute),false);
-            if(!editable)throw new Exception("文字を入力できる欄にカーソルを置いてください。");
+            if(!editable)throw new NoInputTargetException("文字を入力できる欄にカーソルを置いてください。");
             if(e.TryGetCurrentPattern(TextPattern.Pattern,out t)){
               var selection=((TextPattern)t).GetSelection();
               if((selection.Length!=1||selection[0].CompareEndpoints(System.Windows.Automation.Text.TextPatternRangeEndpoint.Start,selection[0],System.Windows.Automation.Text.TextPatternRangeEndpoint.End)!=0)&&!(e.Current.FrameworkId=="Chrome"&&Value(e)==""))throw new Exception("文字の選択を解除してから録音してください。");
@@ -118,11 +120,15 @@ static class RealtimeInput {
             // Some Chromium editors expose their empty-field prompt as real text.
             // Keep it as baseline until the first insertion proves that it disappears.
             if(e.Current.FrameworkId=="Chrome"&&left==""&&right==baseline&&!String.IsNullOrEmpty(e.Current.Name)&&baseline=="\n"+e.Current.Name)emptyAdornment=baseline;
+            if(!String.IsNullOrEmpty(r.prior)){
+              if(r.prior.Length>12000||baseline==null||left==null||!left.EndsWith(r.prior,StringComparison.Ordinal))throw new Exception("元の入力済み文章の末尾にカーソルを置いてください。続きの境界に修正があります。");
+              left=left.Substring(0,left.Length-r.prior.Length);written=r.prior;
+            }
             if(baseline!=null&&baseline.Length>200000)throw new Exception("入力先の文章が検証上限を超えています。");changed=null;active=true;initialized=true;
             Emit(new {ready=true,verification=baseline==null?"input-monitor":"value-and-input-monitor"});continue;
           }
           if(r.kind!="write"||!initialized||r.text==null||r.text.Length>12000)throw new Exception("入力要求が不正です。");
-          var element=Focus(window,pid);string current=Value(element);
+          var element=Focus(window,pid);attemptEditor=element;string current=Value(element);
           if(Id(element)!=editor){if(baseline==null||String.IsNullOrEmpty(automationId)||element.Current.AutomationId!=automationId||element.Current.ControlType!=editorType)throw new Exception("入力欄が変わったため自動入力を停止しました。");editor=Id(element);}
           if(baseline!=current){
             bool emptyBlock=false;
@@ -155,7 +161,11 @@ static class RealtimeInput {
             if(changed!=null)throw new Exception(changed);
             LiveWriter.CheckWindow(window,pid);
             var pair=new INPUT[]{batch[i],batch[i+1]};
+            mayHaveWritten=true;
+            deliveryUncertain=true;
             if(SendInput(2,pair,Marshal.SizeOf(typeof(INPUT)))!=2)throw new Exception("Windowsがキー入力を拒否、または一部だけ受け付けました。重複を避けるため再送しません。");
+            deliveryUncertain=false;
+            attemptWritten=batch[i].data.keyboard.key==8?attemptWritten.Substring(0,attemptWritten.Length-1):attemptWritten+(char)batch[i].data.keyboard.scan;
             Thread.Sleep(10);
           }
           if(baseline!=null&&batch.Count>0){
@@ -195,7 +205,17 @@ static class RealtimeInput {
           }
           }finally{if(restoreIme)SetIme(ime,true);}
           written=r.text;Emit(new {written=written,verified=baseline!=null});
-        }catch(Exception e){changed=String.IsNullOrWhiteSpace(e.Message)?"入力監視エラー: "+e.GetType().Name:e.Message;Emit(new {error=changed});}
+        }catch(Exception e){
+          changed=String.IsNullOrWhiteSpace(e.Message)?"入力監視エラー: "+e.GetType().Name:e.Message;
+          string confirmedWritten=null;
+          // Observe the original editor without moving focus or sending another key.
+          // Only acknowledge the exact prefix whose complete key pairs were sent.
+          if(mayHaveWritten&&!deliveryUncertain&&attemptEditor!=null&&left!=null&&right!=null){
+            try{for(int n=0;n<10;n++){if(Value(attemptEditor)==left+attemptWritten+right){confirmedWritten=attemptWritten;break;}Thread.Sleep(20);}}
+            catch(Exception observationError){changed+=" 入力済み範囲の再確認にも失敗しました: "+observationError.GetType().Name;}
+          }
+          Emit(new {error=changed,code=e is NoInputTargetException?"NO_INPUT_TARGET":null,mayHaveWritten=mayHaveWritten,confirmedWritten=confirmedWritten});
+        }
       }
     }finally{active=false;if(keyHook!=IntPtr.Zero)UnhookWindowsHookEx(keyHook);if(mouseHook!=IntPtr.Zero)UnhookWindowsHookEx(mouseHook);}
     return 0;

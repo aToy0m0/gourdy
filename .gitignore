@@ -30,3 +30,19 @@ AGENTS.md
 /test/*
 !/test/*.test.cjs
 !/test/test_nlp.py
+
+# Local acceptance-report generator depends on private recordings and notes.
+/scripts/report-acceptance.cjs
+# Desktop tooling, test reports, transient files and credentials
+.vscode/
+.idea/
+coverage/
+playwright-report/
+test-results/
+Thumbs.db
+.DS_Store
+*.pfx
+*.p12
+*.dmp
+*.tmp
+*.pid

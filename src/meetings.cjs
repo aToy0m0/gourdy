@@ -16,10 +16,16 @@ function execute(exe,args,{signal,maxBuffer=8*1024*1024,timeout=90000}={}){
 async function fingerprint(file){const s=await fs.stat(file);if(!s.isFile())throw new Error('通常の音声・動画ファイルを選んでください。');return {size:s.size,mtimeMs:s.mtimeMs};}
 function equalSource(a,b){return a.size===b.size&&a.mtimeMs===b.mtimeMs;}
 async function probe(file,bin,signal){
- const data=JSON.parse((await execute(path.join(bin,'ffprobe.exe'),['-v','error','-protocol_whitelist','file,pipe','-show_entries','format=duration:stream=index,codec_type,duration','-of','json',file],{signal,maxBuffer:1024*1024,timeout:30000})).toString());
+ const data=JSON.parse((await execute(path.join(bin,'ffprobe.exe'),['-v','error','-protocol_whitelist','file,pipe','-show_entries','format=duration:stream=index,codec_type,codec_name,duration:stream_tags=language,title','-of','json',file],{signal,maxBuffer:1024*1024,timeout:30000})).toString());
  const audio=data.streams?.find(s=>s.codec_type==='audio');if(!audio)throw new Error('このファイルには音声トラックがありません。');
  const duration=Number(audio.duration??data.format?.duration);if(!Number.isFinite(duration)||duration<=0||duration>MAX_SECONDS)throw new Error('長さを確認できる12時間以内の音声・動画を選んでください。');
- return {duration,audioStream:audio.index,video:data.streams.some(s=>s.codec_type==='video')};
+ return {duration,audioStream:audio.index,video:data.streams.some(s=>s.codec_type==='video'),audioCodec:audio.codec_name,subtitleTracks:data.streams.filter(s=>s.codec_type==='subtitle').map(s=>({index:s.index,codec:s.codec_name,language:s.tags?.language||'',title:s.tags?.title||'',supported:['subrip','srt','ass','ssa','webvtt','mov_text','text'].includes(s.codec_name)}))};
+}
+async function extractSubtitles(job,index,bin,signal){
+ const track=job.subtitleTracks?.find(t=>t.index===index);
+ if(!track)throw new Error('字幕トラックが見つかりません。再度ファイルを読み込んでください。');
+ if(!track.supported)throw new Error('画像形式の字幕は抽出に対応していません。音声から文字起こししてください。');
+ return (await execute(path.join(bin,'ffmpeg.exe'),['-hide_banner','-loglevel','error','-xerror','-nostdin','-protocol_whitelist','file,pipe','-i',job.source,'-map',`0:${index}`,'-an','-vn','-c:s','srt','-f','srt','pipe:1'],{signal,maxBuffer:16*1024*1024})).toString('utf8');
 }
 async function decode(job,part,bin,signal,wav=false){
  const pcm=await execute(path.join(bin,'ffmpeg.exe'),['-hide_banner','-loglevel','error','-xerror','-nostdin','-protocol_whitelist','file,pipe','-ss',String(part.start),'-i',job.source,'-t',String(part.end-part.start),'-map',`0:${job.audioStream}`,'-vn','-ac','1','-ar','16000','-c:a',wav?'pcm_s16le':'pcm_f32le','-f',wav?'wav':'f32le','pipe:1'],{signal,maxBuffer:Math.ceil((part.end-part.start)*64000)+1048576});
@@ -93,4 +99,4 @@ class Meetings {
  }
  async remove(id){if(this.running)throw new Error('処理終了後に削除してください。');await fs.unlink(this.file(id));}
 }
-module.exports={Meetings,probe,decode,recognize,transcript,formatTime,atomic,MAX_SECONDS};
+module.exports={Meetings,extractSubtitles,probe,decode,recognize,transcript,formatTime,atomic,MAX_SECONDS};

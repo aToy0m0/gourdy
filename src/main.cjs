@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, ipcMain, dialog, clipboard, session } = require('electron');
+const { app, screen, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, ipcMain, dialog, clipboard, session } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
@@ -11,17 +11,24 @@ const {Recordings}=require('./recordings.cjs');
 const {shortcutKeys}=require('./voice-commands.cjs');
 const {planCommand}=require('./command-plan.cjs');
 const {CommandModel}=require('./command-model.cjs');
-const { Meetings, decode, transcript, recognize } = require('./meetings.cjs');
+const { Meetings, decode, transcript, recognize, extractSubtitles } = require('./meetings.cjs');
 const { Moonshine } = require('./moonshine.cjs');
 const { refine } = require('./refine.cjs');
 const { windowTarget } = require('./window-target.cjs');
 const {RealtimeInput}=require('./realtime-input.cjs');
+const {continuation}=require('./continuation.cjs');
+let bubble,bubbleReady,bubbleDismissed=false,remaining=null,continuationBusy=false,warmVoice=null;
+let infoWindow,infoReady,infoText='',infoOpen=false;
 app.disableHardwareAcceleration();
+app.setAppUserModelId('jp.localdictation.streaming');
+const appIcon=path.join(__dirname,'assets','gourdy.ico');
 // Keep existing profiles when the display/product name changes.
 app.setPath('userData', path.join(app.getPath('appData'), 'local-dictation-streaming'));
 if (process.env.DICTATION_TEST_DATA) app.setPath('userData', process.env.DICTATION_TEST_DATA);
 const root = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
 let mini, editor, tray, store, live, phase = 'idle', shuttingDown = false, latest = null, saving = Promise.resolve(), closingEditor = false;
+const {LocalMcp,localMediaPath}=require('./local-mcp.cjs');
+let mcpServer,mediaId=null;
 let mediaController=null,mediaDone=null,meetings,recordings,commandSession=null;
 let commandModel,commandDownload=null,downloadRequest=null;
 let inputController, recovering=false;
@@ -32,33 +39,102 @@ const engine = () => ({
   replacements: store.data.settings.replacements,
   glossary: store.data.settings.terms.filter(t=>t.term.trim() && t.reading.trim()).map(t=>({term:t.term.trim(),reading:t.reading.trim(),aliases:[t.reading.trim()],contexts:[],auto:true}))
 });
+function prepareVoice(){
+  if(warmVoice||live||phase!=='idle'||shuttingDown||!store.data.settings.fastStart)return;
+  const worker=new Moonshine(engine());warmVoice=worker;
+  worker.ready.catch(error=>{if(warmVoice===worker){warmVoice=null;report(error);}});
+}
+async function releaseWarmVoice(){const worker=warmVoice;warmVoice=null;await worker?.close();}
 function trusted(event, name) {
-  const window = name === 'mini' ? mini : editor;
-  const file = name === 'mini' ? 'index.html' : 'settings.html';
+  const window = name === 'mini' ? mini : name==='bubble'?bubble:name==='info'?infoWindow:editor;
+  const file = name === 'mini' ? 'index.html' : name==='bubble'?'continuation.html':name==='info'?'info.html':'settings.html';
   if (!window || window.isDestroyed() || event.sender !== window.webContents || event.senderFrame?.url !== pathToFileURL(path.join(__dirname,file)).href) throw new Error('許可されていない画面です。');
 }
 function send(window, channel, value) { if(window && !window.isDestroyed())window.webContents.send(channel,value); }
-function snapshot() { return {...store.data, latest, phase, version:app.getVersion(), dataPath:store.file,notice:lastNotice,commandModel:commandModel?.state}; }
-function broadcast() { send(mini,'settings-changed',store.data.settings);send(editor,'data-changed',snapshot()); }
-function setPhase(value) {phase=value;tray?.setToolTip('okosy — '+({idle:'待機中',starting:'準備中',recording:'録音中',processing:'補正中'}[value]));send(editor,'phase-changed',value);}
-function report(error) { lastNotice=error.message; send(mini,'notice',error.message);send(editor,'notice',error.message);if(tray)tray.setToolTip('okosy — '+error.message.slice(0,90)); }
+function snapshot() { return {...store.data, mcp:mcpServer?.status, latest, phase, version:app.getVersion(), dataPath:store.file,notice:lastNotice,commandModel:commandModel?.state}; }
+function broadcast() { send(infoWindow,'info',{text:infoText,background:store.data.settings.textBackground!==false});send(mini,'settings-changed',store.data.settings);send(editor,'data-changed',snapshot()); }
+function setPhase(value) {phase=value;tray?.setToolTip('Gourdy — '+({idle:'待機中',starting:'準備中',recording:'録音中',processing:'補正中'}[value]));send(editor,'phase-changed',value);}
+function report(error) { lastNotice=error.message; send(mini,'notice',error.message);send(editor,'notice',error.message);if(tray)tray.setToolTip('Gourdy — '+error.message.slice(0,90)); }
 function serialize(fn) { const result=saving.then(fn);saving=result.then(()=>{},()=>{});return result; }
 function secureWindow(window, file) {
   window.setMenu(null);window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',e=>e.preventDefault());
   return window.loadFile(path.join(__dirname,file));
 }
+let miniGesture=null;
+function visibleMiniBounds(bounds){
+  const area=screen.getDisplayMatching(bounds).workArea;
+  return {...bounds,x:Math.max(area.x,Math.min(bounds.x,area.x+area.width-bounds.width)),y:Math.max(area.y,Math.min(bounds.y,area.y+area.height-bounds.height))};
+}
 async function ensureMini() {
   if(mini && !mini.isDestroyed())return;
-  mini=new BrowserWindow({width:315,height:112,useContentSize:true,resizable:false,frame:false,show:false,focusable:false,alwaysOnTop:true,backgroundColor:'#ffffff',skipTaskbar:true,
+  const saved=store.data.miniBounds;
+  if(saved&&(!['x','y','width','height'].every(k=>Number.isInteger(saved[k]))||saved.width<140||saved.width>420||Math.abs(saved.height-Math.round(saved.width*348/280))>1))throw new Error('保存した録音画面のサイズが不正です。');
+  mini=new BrowserWindow({icon:appIcon,width:168,height:209,useContentSize:true,resizable:false,frame:false,transparent:true,hasShadow:false,show:false,focusable:false,alwaysOnTop:true,backgroundColor:'#00000000',skipTaskbar:true,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+  if(saved)mini.setBounds(visibleMiniBounds(saved));
+  else {
+    const area=screen.getPrimaryDisplay().workArea,{width,height}=mini.getBounds();
+    mini.setPosition(Math.max(area.x,area.x+area.width-width-24),Math.max(area.y,area.y+area.height-height-24));
+  }
   mini.setSkipTaskbar(!store.data.settings.showTaskbar);
+  mini.on('move',()=>positionBubble());
+  mini.on('resize',()=>positionInfo());
+  mini.on('hide',()=>{infoOpen=false;infoWindow?.hide();});
   mini.on('close',event=>{if(!shuttingDown){event.preventDefault();mini.hide();}});
   await secureWindow(mini,'index.html');
 }
-async function showMini() {await ensureMini();mini.showInactive();}
+function positionBubble(){
+  positionInfo();
+  if(!bubble||bubble.isDestroyed()||!mini)return;
+  const m=mini.getBounds(),area=screen.getDisplayMatching(m).workArea;
+  bubble.setBounds({x:Math.max(area.x,Math.min(m.x,area.x+area.width-315)),y:Math.max(area.y,Math.min(m.y-174,area.y+area.height-174)),width:315,height:174});
+}
+function positionInfo(){
+  if(!infoWindow||infoWindow.isDestroyed()||!mini)return;
+  const m=mini.getBounds(),area=screen.getDisplayMatching(m).workArea;
+  // Keep information beside the recorder so it does not cover transcription above it.
+  const width=Math.min(300,area.width),height=Math.min(194,area.height);
+  const x=m.x-width>=area.x?m.x-width:m.x+m.width;
+  infoWindow.setBounds({x:Math.max(area.x,Math.min(x,area.x+area.width-width)),y:Math.max(area.y,Math.min(m.y,area.y+area.height-height)),width,height});
+}
+async function updateInfo(text,open){
+  infoText=text;
+  if(!text){infoOpen=false;infoWindow?.hide();return;}
+  if(open)infoOpen=!infoOpen;
+  if(!infoOpen){infoWindow?.hide();return;}
+  if(!infoWindow||infoWindow.isDestroyed()){
+    infoWindow=new BrowserWindow({icon:appIcon,width:300,height:194,frame:false,transparent:true,resizable:false,focusable:false,show:false,alwaysOnTop:true,skipTaskbar:true,webPreferences:{preload:path.join(__dirname,'info-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    infoReady=secureWindow(infoWindow,'info.html');
+  }
+  await infoReady;
+  if(!infoOpen||!infoText||!mini.isVisible())return;
+  positionInfo();send(infoWindow,'info',{text:infoText,background:store.data.settings.textBackground!==false});infoWindow.showInactive();
+}
+async function refreshContinuation(){
+  const enabled=store.data.settings.continuationAssist;
+  const value=remaining&&enabled?{...remaining,ready:phase==='idle',busy:continuationBusy}:null;
+  send(mini,'continuation',value);
+  if(!value||bubbleDismissed){bubble?.hide();return;}
+  if(!bubble||bubble.isDestroyed()){
+    bubble=new BrowserWindow({icon:appIcon,width:315,height:174,frame:false,transparent:true,resizable:false,focusable:false,show:false,alwaysOnTop:true,skipTaskbar:true,webPreferences:{preload:path.join(__dirname,'continuation-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    bubble.setMenu(null);bubble.webContents.setWindowOpenHandler(()=>({action:'deny'}));bubble.webContents.on('will-navigate',e=>e.preventDefault());
+    bubbleReady=bubble.loadFile(path.join(__dirname,'continuation.html'));
+  }
+  await bubbleReady;
+  if(!remaining||!store.data.settings.continuationAssist||bubbleDismissed)return;
+  positionBubble();send(bubble,'continuation',value);bubble.showInactive();
+}
+function updateContinuation(corrected){
+  if(!live?.blocked||live.command)return;
+  remaining={...continuation(live.raw,live.state?.written||'',live.continuationCertain,corrected),reason:live.blocked};
+  if(live.noInput)remaining.label='文字起こし（入力先なし）';
+  if(process.env.DICTATION_TEST_DATA)remaining.diagnostic=live.continuationDiagnostic;
+  refreshContinuation().catch(report);
+}
+async function showMini() {await ensureMini();mini.showInactive();mini.moveTop();}
 async function showSettings(tab='operation') {
   if(editor && !editor.isDestroyed()){editor.show();editor.focus();send(editor,'select-tab',tab);return;}
-  editor=new BrowserWindow({width:680,height:700,minWidth:420,minHeight:450,frame:false,show:false,minimizable:false,title:'okosy - 設定',backgroundColor:'#ffffff',skipTaskbar:!store.data.settings.showTaskbar,
+  editor=new BrowserWindow({icon:appIcon,width:680,height:700,minWidth:420,minHeight:450,frame:false,show:false,minimizable:false,title:'Gourdy - 設定',backgroundColor:'#ffffff',skipTaskbar:!store.data.settings.showTaskbar,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   closingEditor=false;
   editor.on('close',event=>{if(!shuttingDown&&!closingEditor){event.preventDefault();send(editor,'request-close');}});
@@ -76,7 +152,9 @@ async function startCommand() {
   finally{if(commandSession===token)send(mini,'command-release',{error:token.error});}
 }
 function registerCommand(shortcut){return globalShortcut.register(shortcut,()=>startCommand().catch(error=>{commandSession=null;report(error)}));}
-function register(shortcut){return globalShortcut.register(shortcut,()=>toggle().catch(report));}
+const {RecordingShortcut}=require('./recording-shortcut.cjs');
+const recordingShortcut=new RecordingShortcut(globalShortcut,()=>{if(!editor?.isFocused())toggle().catch(report)},report);
+function register(shortcut){return recordingShortcut.register(shortcut);}
 async function saveSettings(patch, preserveHistory=false) {
   if(phase!=='idle')throw new Error('録音・補正が終わってから設定を変更してください。');
   if(!patch || typeof patch!=='object' || Object.keys(patch).some(k=>!Object.hasOwn(defaults,k)))throw new Error('設定項目が不正です。');
@@ -90,21 +168,37 @@ async function saveSettings(patch, preserveHistory=false) {
     const unregisterOldCommand=previous.commandEnabled&&(!next.commandEnabled||next.commandShortcut!==previous.commandShortcut);
     const newKey=next.shortcut!==previous.shortcut, newStartup=next.launchAtStartup!==previous.launchAtStartup;
     if(newStartup&&!app.isPackaged)throw new Error('自動起動はビルド済みアプリで設定してください。');
-    if(newKey&&!register(next.shortcut))throw new Error('このショートカットは他のアプリで使用中です。');
-    if(registerNewCommand&&!registerCommand(next.commandShortcut)){if(newKey)globalShortcut.unregister(next.shortcut);throw new Error('コマンドショートカットは他のアプリで使用中です。');}
+    if(newKey&&!await register(next.shortcut))throw new Error('このショートカットは他のアプリで使用中です。');
+    if(registerNewCommand&&!registerCommand(next.commandShortcut)){if(newKey)recordingShortcut.unregister(next.shortcut);throw new Error('コマンドショートカットは他のアプリで使用中です。');}
     try {
       if(newStartup){app.setLoginItemSettings({openAtLogin:next.launchAtStartup,path:process.execPath,args:['--autostart']});if(app.getLoginItemSettings({path:process.execPath,args:['--autostart']}).openAtLogin!==next.launchAtStartup)throw new Error('Windowsの自動起動設定を確認できません。');}
+      if(previous.mcpEnabled!==next.mcpEnabled||previous.mcpPort!==next.mcpPort)await mcpServer.configure(next);
       await store.write({...store.data,settings:next,history:preserveHistory?store.data.history:trimHistory(store.data.history,next)});
     } catch(error) {
+      try{await mcpServer.configure(previous);}catch(restoreError){report(restoreError);}
       if(registerNewCommand)globalShortcut.unregister(next.commandShortcut);
-      if(newKey)globalShortcut.unregister(next.shortcut);
+      if(newKey)recordingShortcut.unregister(next.shortcut);
       if(newStartup)app.setLoginItemSettings({openAtLogin:previous.launchAtStartup,path:process.execPath,args:['--autostart']});
       throw error;
     }
-    if(newKey)globalShortcut.unregister(previous.shortcut);
+    if(newKey)recordingShortcut.unregister(previous.shortcut);
     if(unregisterOldCommand)globalShortcut.unregister(previous.commandShortcut);
-    mini?.setSkipTaskbar(!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();return snapshot();
+    mini?.setSkipTaskbar(!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();if(!next.fastStart)await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
   });
+}
+async function prepareMeeting(file){
+ if(phase!=='idle'||importing)throw new Error('現在の処理が終わってから読み込んでください。');
+ setPhase('processing');try{return await meetings.prepare(file);}finally{setPhase('idle');}
+}
+function startMeeting(id){
+ if(phase!=='idle'||importing)throw new Error('現在の処理が終わってから開始してください。');
+ mediaController=new AbortController();mediaId=id;setPhase('processing');const signal=mediaController.signal;
+ mediaDone=(async()=>{
+  try{const configuration=engine();for(const key of ['python','llmEngine','llmModel','moonshineModel','moonshineRuntime']){try{await fs.access(configuration[key]);}catch{throw new Error(`${key}が見つかりません。配布ファイルを確認してください。`);}}
+   await releaseWarmVoice();return await meetings.run(id,signal,(job,index,attempt)=>send(editor,'meeting-changed',{job,index,attempt}));
+  }catch(e){try{const job=await meetings.read(id);if(!['error','paused'].includes(job.state)){job.state=signal.aborted?'paused':'error';job.error=e.message;await meetings.save(job);send(editor,'meeting-changed',{job});}}catch(saveError){report(saveError);}throw e;}
+  finally{mediaController=null;mediaDone=null;mediaId=null;setPhase('idle');prepareVoice();}
+ })();mediaDone.catch(report);return mediaDone;
 }
 async function importIme(automatic=false){
  if(importing)throw new Error('Windows辞書を取り込み中です。');
@@ -119,7 +213,7 @@ function writeLive(text) {
   const active=live;if(!active?.state || active.blocked)return;
   active.pendingText=text;if(active.writing)return;
   active.writing=Promise.resolve().then(async()=>{try{while(active.pendingText!==undefined&&!active.blocked){const next=active.pendingText;active.pendingText=undefined;if(next!==active.state.written)active.state=await active.input.request({kind:'write',text:next});}}
-  catch(error){active.blocked=error.message;report(error);}}).finally(()=>{active.writing=null;});
+  catch(error){active.blocked=error.message;active.continuationDiagnostic={mayHaveWritten:error.mayHaveWritten,confirmedWritten:error.confirmedWritten,previousWritten:active.state.written,previousVerified:active.state.verified};if(typeof error.confirmedWritten==='string')active.state={written:error.confirmedWritten,verified:true};active.continuationCertain=(error.mayHaveWritten===false||typeof error.confirmedWritten==='string')&&(active.state.written===''||active.state.verified===true);report(error);updateContinuation();}}).finally(()=>{active.writing=null;});
 }
 async function toggle(){await ensureMini();send(mini,'toggle');}
 async function remember(text, original, status, id) {
@@ -144,12 +238,24 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     session.defaultSession.setPermissionRequestHandler((contents,permission,callback,details)=>callback(Boolean((contents===mini?.webContents || contents===editor?.webContents) && permission==='media' && details.mediaTypes?.every(t=>t==='audio'))));
     session.defaultSession.setPermissionCheckHandler((contents,permission)=>Boolean((contents===mini?.webContents||contents===editor?.webContents)&&permission==='media'));
     session.defaultSession.webRequest.onBeforeRequest({urls:['http://*/*','https://*/*','ws://*/*','wss://*/*']},(_,cb)=>cb({cancel:true}));
-    const pixels=Buffer.alloc(32*32*4);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const i=(y*32+x)*4;const m=(x>=12&&x<=19&&y>=5&&y<=20)||(y>=22&&y<=24&&x>=8&&x<=23)||(x>=14&&x<=17&&y>=24&&y<=28);pixels[i]=pixels[i+1]=pixels[i+2]=m?255:38;pixels[i+3]=255;}
-    tray=new Tray(nativeImage.createFromBitmap(pixels,{width:32,height:32}));tray.setToolTip('okosy — 待機中');
-    tray.setContextMenu(Menu.buildFromTemplate([{label:'okosyを開く',click:()=>showMini().catch(report)},{label:'設定',click:()=>showSettings().catch(report)},{label:'録音を開始 / 停止',click:()=>toggle().catch(report)},{type:'separator'},{label:'終了',click:()=>app.quit()}]));
+    const trayIcon=nativeImage.createFromPath(appIcon);
+    if(trayIcon.isEmpty())throw new Error('アプリアイコンを読み込めません。');
+    tray=new Tray(trayIcon);tray.setToolTip('Gourdy — 待機中');
+    tray.setContextMenu(Menu.buildFromTemplate([{label:'Gourdyを開く',click:()=>showMini().catch(report)},{label:'設定',click:()=>showSettings().catch(report)},{label:'録音を開始 / 停止',click:()=>toggle().catch(report)},{type:'separator'},{label:'終了',click:()=>app.quit()}]));
     tray.on('double-click',()=>showMini().catch(report));
+    mcpServer=new LocalMcp(app.getPath('userData'),{
+      prepare_file:async({path:file})=>prepareMeeting(await localMediaPath(file)),
+      start_transcription:async({id})=>{await meetings.read(id);startMeeting(id);return {id,state:'running'};},
+      get_transcription:async({id})=>{const job=await meetings.read(id);if(job.state==='running'&&mediaId!==id)job.state='paused';return {...job,text:transcript(job)};},
+      list_transcriptions:()=>meetings.list(),
+      cancel_transcription:async({id})=>{if(mediaId!==id||!mediaController)throw new Error('指定したジョブは処理中ではありません。');mediaController.abort();return {id,state:'cancelling'};}
+    },app.getVersion(),report);
+    try{await mcpServer.configure(store.data.settings);}catch(e){mcpServer.status={state:'error',error:e.message};report(e);}
+    ipcMain.handle('mcp-copy-configuration',event=>{trusted(event,'settings');clipboard.writeText(JSON.stringify(mcpServer.configuration(),null,2));});
     ipcMain.handle('snapshot',event=>{trusted(event,'settings');return snapshot();});
     ipcMain.handle('mini-settings',event=>{trusted(event,'mini');return store.data.settings;});
+    ipcMain.handle('mini-info',(event,text,open)=>{trusted(event,'mini');if(typeof text!=='string'||text.length>16000||typeof open!=='boolean')throw new Error('情報の形式が不正です。');return updateInfo(text,open);});
+    ipcMain.handle('info-hide',event=>{trusted(event,'info');infoOpen=false;infoWindow.hide();});
     ipcMain.handle('report-mini-error',(event,message)=>{trusted(event,'mini');if(typeof message!=='string'||message.length>4000)throw new Error('エラー情報が不正です。');lastNotice=message;send(editor,'notice',message);});
     ipcMain.handle('cancel-media',event=>{trusted(event,'settings');mediaController?.abort();});
     ipcMain.handle('recording-list',async event=>{trusted(event,'settings');await recordings.prune();return recordings.list();});
@@ -158,13 +264,13 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('recording-retry',async(event,id)=>{
       trusted(event,'settings');if(phase!=='idle'||commandSession)throw new Error('現在の処理が終わってから再認識してください。');
       const row=await recordings.read(id);if(!row.duration||row.state==='recording')throw new Error('再認識できる音声がありません。');
-      setPhase('processing');controller=new AbortController();
+      await releaseWarmVoice();setPhase('processing');controller=new AbortController();
       try{const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(300000)]),settings=engine();
         const pcm=await decode({source:recordings.file(id,'wav'),audioStream:0},{start:0,end:row.duration},meetings.bin,signal);
         const raw=await recognize(pcm,settings,signal);if(!raw.trim())throw new Error('音声から文字を認識できませんでした。音声は残っています。');
         const historyId=await remember(raw,raw,'再認識・未補正');
         const result=await refine(raw,settings,signal);await remember(result.corrected,raw,'再認識・確認待ち',historyId);
-      }finally{controller=null;setPhase('idle');}
+      }finally{controller=null;setPhase('idle');prepareVoice();}
       return snapshot();
     });
     ipcMain.handle('meeting-list',event=>{trusted(event,'settings');return meetings.list();});
@@ -173,7 +279,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
       trusted(event,'settings');if(phase!=='idle'||importing)throw new Error('現在の処理が終わってから読み込んでください。');
       const selected=await dialog.showOpenDialog(editor,{title:'音声・動画を選ぶ',properties:['openFile'],filters:[{name:'音声・動画',extensions:['wav','mp3','m4a','mp4','webm','mkv','mov','flac','ogg','aac','wma','wmv']},{name:'すべてのファイル',extensions:['*']}]});
       if(selected.canceled)return null;if(phase!=='idle')throw new Error('録音が始まったため、読み込みを中止しました。');
-      setPhase('processing');try{return await meetings.prepare(selected.filePaths[0]);}finally{setPhase('idle');}
+      return prepareMeeting(selected.filePaths[0]);
     });
     ipcMain.handle('meeting-preview',async(event,id,start)=>{
       trusted(event,'settings');const job=await meetings.read(id);await meetings.verify(job);
@@ -181,12 +287,12 @@ if(!app.requestSingleInstanceLock())app.quit();else {
       const end=Math.min(start+30,job.duration);const audio=await decode(job,{start,end},meetings.bin,undefined,true);
       return {url:'data:audio/wav;base64,'+audio.toString('base64'),start,end};
     });
-    ipcMain.handle('meeting-run',async(event,id)=>{
-      trusted(event,'settings');if(phase!=='idle'||importing)throw new Error('現在の処理が終わってから開始してください。');
-      const configuration=engine();for(const key of ['python','llmEngine','llmModel','moonshineModel','moonshineRuntime']){try{await fs.access(configuration[key]);}catch{throw new Error(`${key}が見つかりません。配布ファイルを確認してください。`);}}
-      mediaController=new AbortController();setPhase('processing');
-      mediaDone=meetings.run(id,mediaController.signal,(job,index,attempt)=>send(editor,'meeting-changed',{job,index,attempt}));
-      try{return await mediaDone;}finally{mediaController=null;mediaDone=null;setPhase('idle');}
+    ipcMain.handle('meeting-run',(event,id)=>{trusted(event,'settings');return startMeeting(id);});
+    ipcMain.handle('subtitle-copy',(event,text)=>{trusted(event,'settings');if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>16*1024*1024)throw new Error('字幕が大きすぎます。');clipboard.writeText(text);});
+    ipcMain.handle('meeting-subtitles',async(event,id,index)=>{
+      trusted(event,'settings');if(phase!=='idle')throw new Error('現在の処理が終わってから読み込んでください。');
+      const job=await meetings.read(id);await meetings.verify(job);setPhase('processing');
+      try{return await extractSubtitles(job,index,meetings.bin);}finally{setPhase('idle');}
     });
     ipcMain.handle('meeting-copy',async(event,id)=>{trusted(event,'settings');clipboard.writeText(transcript(await meetings.read(id)));});
     ipcMain.handle('meeting-export',async(event,id)=>{
@@ -205,7 +311,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('export-ime',async event=>{
       trusted(event,'settings');if(phase!=='idle')throw new Error('録音・補正が終わってから操作してください。');
       const result=exportDictionary(store.data.settings.terms);
-      const destination=await dialog.showSaveDialog(editor,{title:'辞書を書き出す',defaultPath:'okosy辞書.txt',filters:[{name:'Microsoft IME ユーザー辞書',extensions:['txt']}]});
+      const destination=await dialog.showSaveDialog(editor,{title:'辞書を書き出す',defaultPath:'Gourdy辞書.txt',filters:[{name:'Microsoft IME ユーザー辞書',extensions:['txt']}]});
       if(destination.canceled)return {canceled:true};
       await fs.writeFile(destination.filePath,result.buffer);return {canceled:false,count:result.count};
     });
@@ -262,26 +368,73 @@ if(!app.requestSingleInstanceLock())app.quit();else {
       catch(error){report(error);editor?.show();throw error;}
       finally{picking=false;}
     });
+    ipcMain.handle('mini-layout',(event,height)=>{
+      trusted(event,'mini');
+      if(!Number.isInteger(height)||height<100||height>1000)throw new Error('表示領域の高さが不正です。');
+      const bounds=mini.getBounds();if(bounds.height===height)return;
+      mini.setBounds(visibleMiniBounds({...bounds,height}));positionBubble();
+    });
+    ipcMain.handle('mini-gesture',async(event,action,kind)=>{
+      trusted(event,'mini');
+      if(action==='start'){
+        if(!['move','resize'].includes(kind))throw new Error('画面操作が不正です。');
+        miniGesture={kind,cursor:screen.getCursorScreenPoint(),bounds:mini.getBounds()};return;
+      }
+      if(!['update','end'].includes(action))throw new Error('画面操作が不正です。');
+      if(!miniGesture)return;
+      if(action==='update'){
+        const g=miniGesture,p=screen.getCursorScreenPoint(),dx=p.x-g.cursor.x,dy=p.y-g.cursor.y;
+        if(g.kind==='move')mini.setPosition(g.bounds.x+dx,g.bounds.y+dy);
+        else{const width=Math.max(140,Math.min(420,Math.round(g.bounds.width+(dx+dy*280/348)/2)));mini.setBounds({...g.bounds,width,height:Math.round(width*348/280)});}
+        positionBubble();return;
+      }
+      miniGesture=null;mini.setBounds(visibleMiniBounds(mini.getBounds()));
+      await serialize(()=>store.write({...store.data,miniBounds:{...mini.getBounds(),height:Math.round(mini.getBounds().width*348/280)}}));
+    });
+    ipcMain.handle('mini-shape',(event,rects,viewport)=>{
+      trusted(event,'mini');const size=mini.getContentBounds();
+      if(viewport?.width!==size.width||viewport?.height!==size.height)return; // A newer resize superseded this outline.
+      if(!Array.isArray(rects)||!rects.length||rects.length>3000||rects.some(r=>!r||!['x','y','width','height'].every(k=>Number.isInteger(r[k]))||r.x<0||r.y<0||r.width<1||r.height<1||r.x+r.width>size.width||r.y+r.height>size.height))throw new Error('録音ウィンドウの形状が不正です。');
+      mini.setShape(rects);
+    });
+    ipcMain.handle('continuation-hide',event=>{trusted(event,'bubble');bubbleDismissed=true;bubble.hide();});
+    ipcMain.handle('continuation-copy',event=>{
+      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('録音・補正が終わってからコピーしてください。');clipboard.writeText(remaining.text);
+    });
+    ipcMain.handle('continuation-insert',async event=>{
+      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.safe||!remaining.text||continuationBusy)throw new Error('入力できる続きがありません。');
+      continuationBusy=true;await refreshContinuation();let writer,writing=false;
+      try{
+        const target=await windowTarget('capture');if(!target)throw new Error('入力したい欄にカーソルを置いてください。');
+        writer=new RealtimeInput(target);await writer.request({kind:'start',shortcut:shortcutKeys(store.data.settings.shortcut),prior:remaining.prior});
+        writing=true;const result=await writer.request({kind:'write',text:remaining.prior?remaining.full:remaining.text});
+        remaining={...remaining,safe:false,inserted:true,label:'入力済み'};lastNotice='';send(mini,'notice','');return {verified:result.verified};
+      }catch(error){if(writing&&error.mayHaveWritten!==false){remaining.safe=false;remaining.label='一部入力された可能性があります。入力先を確認してください。';}throw error;}
+      finally{await writer?.close();continuationBusy=false;await refreshContinuation();}
+    });
     ipcMain.handle('live-start',async(event,mode)=>{
-      trusted(event,'mini');if(phase!=='idle'||live||picking)throw new Error('録音は既に開始しています。');setPhase('starting');lastNotice='';recovering=false;inputController=new AbortController();
+      trusted(event,'mini');if(phase!=='idle'||live||picking||continuationBusy)throw new Error('録音は既に開始しています。');setPhase('starting');lastNotice='';recovering=false;inputController=new AbortController();
+      let startingWorker;const startAt=performance.now();
       try {
         const command=mode==='command';if(command&&(!store.data.settings.commandEnabled||commandModel.state.state!=='ready'||!commandSession))throw new Error('コマンドを有効にして専用ショートカットから開始してください。');
         const target=(command||store.data.settings.liveInput)?await windowTarget('capture',null,undefined,inputController.signal):null;
-        if((command||store.data.settings.liveInput)&&!target)throw new Error('入力先の文字欄にカーソルを置いてください。');
-        let state=null,input=null;
+        if(command&&!target)throw new Error('入力先の文字欄にカーソルを置いてください。');
+        startingWorker=warmVoice||new Moonshine(engine());warmVoice=null;startingWorker.ready.catch(()=>{});const modelRequestedAt=performance.now();
+        let state=null,input=null,noInputReason=!command&&!target?'入力先なし · 吹き出しに文字起こしします':'';
         if(target){
           if(command)state=await windowTarget('command-start',target,undefined,inputController.signal);
-          else {input=new RealtimeInput(target,inputController.signal);try{await input.request({kind:'start',shortcut:shortcutKeys(store.data.settings.shortcut)});state={written:''};}catch(error){await input.close();throw error;}}
+          else {input=new RealtimeInput(target,inputController.signal);try{await input.request({kind:'start',shortcut:shortcutKeys(store.data.settings.shortcut)});state={written:''};}catch(error){await input.close();input=null;if(error.code!=='NO_INPUT_TARGET')throw error;noInputReason=error.message+' 吹き出しに文字起こしします。';}}
         }
-        live={command,target,state,input,raw:'',blocked:'',worker:new Moonshine(engine()),writing:null};
+        remaining=null;bubbleDismissed=false;await refreshContinuation();
+        live={command,target,state,input,raw:'',noInput:!!noInputReason,blocked:noInputReason,continuationCertain:!!noInputReason,worker:startingWorker,writing:null};
         if(!command&&store.data.settings.saveAudio)live.audioId=await recordings.start();
-        await live.worker.ready;setPhase('recording');return {target};
-      }catch(error){if(live){await live.worker.close();await live.input?.close();}await recordings.finish('interrupted');live=null;setPhase('idle');report(error);throw error;}
+        const inputReadyAt=performance.now();await live.worker.ready;setPhase('recording');updateContinuation();return {target,timing:{modelRequestedMs:modelRequestedAt-startAt,inputReadyMs:inputReadyAt-startAt,readyMs:performance.now()-startAt,model:live.worker.timing}};
+      }catch(error){if(!live&&startingWorker)await startingWorker.close();if(live){await live.worker.close();await live.input?.close();}await recordings.finish('interrupted');live=null;setPhase('idle');report(error);throw error;}
     });
     ipcMain.handle('live-chunk',async(event,bytes)=>{
       trusted(event,'mini');if(phase!=='recording'||!live||enginePromise||!(bytes instanceof Uint8Array)||!bytes.length||bytes.length%4||bytes.length>64000)throw new Error('音声または処理状態が不正です。');
       if(live.audioId)await recordings.append(Buffer.from(bytes));
-      enginePromise=live.worker.request('audio',bytes);try{const update=await enginePromise;if(update.text.length>12000)throw new Error('文字数の上限に達しました。');live.raw=update.text;if(!live.command)writeLive(update.text);return {...update,blocked:live.blocked};}finally{enginePromise=null;}
+      enginePromise=live.worker.request('audio',bytes);try{const update=await enginePromise;if(update.text.length>12000)throw new Error('文字数の上限に達しました。');live.raw=update.text;if(!live.command){writeLive(update.text);updateContinuation();}return {...update,blocked:remaining?'':live.blocked};}finally{enginePromise=null;}
     });
     ipcMain.handle('live-finish',async event=>{
       trusted(event,'mini');if(!live||enginePromise)throw new Error('音声処理が終了していません。');setPhase('processing');controller=new AbortController();
@@ -292,27 +445,27 @@ if(!app.requestSingleInstanceLock())app.quit();else {
         live.savedId=await remember(final.text,final.text,'未補正');
         const result=await refine(final.text,engine(),controller.signal);writeLive(result.corrected);await live.writing;
         await remember(result.corrected,final.text,live.blocked?'自動入力停止':live.state?(live.input?.verification==='input-monitor'?'入力送信済み（本文取得非対応）':'入力済み'):'確認待ち',live.savedId);
-        return {blocked:live.blocked,text:result.corrected};
-      }catch(error){if(!live.command&&live.raw&&!live.savedId)await remember(live.raw,live.raw,'処理中断');throw error;}
+        updateContinuation(result.corrected);return {blocked:remaining?'':live.blocked,text:result.corrected};
+      }catch(error){updateContinuation();if(!live.command&&live.raw&&!live.savedId)await remember(live.raw,live.raw,'処理中断');throw error;}
       finally{controller=null;}
     });
     ipcMain.handle('live-end',async event=>{
       trusted(event,'mini');const review=Boolean(!recovering&&live&&!live.command&&(!live.state||live.blocked));
-      if(live){await live.worker.close();await live.writing;await live.input?.close();if(!live.command&&live.raw&&!live.savedId)live.savedId=await remember(live.raw,live.raw,'未補正');}await recordings.finish('interrupted');live=null;commandSession=null;setPhase('idle');broadcast();if(review&&latest)await showSettings('history');
+      if(live){await live.worker.close();await live.writing;await live.input?.close();if(!live.command&&live.raw&&!live.savedId)live.savedId=await remember(live.raw,live.raw,'未補正');}await recordings.finish('interrupted');live=null;commandSession=null;setPhase('idle');broadcast();await refreshContinuation();if(review&&latest&&(!remaining||!store.data.settings.continuationAssist))await showSettings('history');prepareVoice();
     });
     ipcMain.handle('force-stop',event=>{trusted(event,'mini');recovering=true;inputController?.abort();controller?.abort();if(live){live.blocked='再開のため中断';live.worker.fail(new Error('再開のため録音を中断しました。'));}});
     ipcMain.handle('cancel',event=>{trusted(event,'mini');controller?.abort();});
-    await ensureMini();if(!process.argv.includes('--autostart'))mini.showInactive();
+    await ensureMini();if(!process.argv.includes('--autostart')){mini.showInactive();mini.moveTop();}prepareVoice();
     if(store.data.settings.imeAutoImport){try{const result=await importIme(true);if(result.importStats.overflow||result.importStats.skipped)report(new Error(importMessage(result.importStats)));}catch(error){report(error);}}
     if(store.data.settings.commandEnabled&&!registerCommand(store.data.settings.commandShortcut))report(new Error('コマンドショートカットが他のアプリで使われています。設定で変更してください。'));
-    if(!register(store.data.settings.shortcut))report(new Error('ショートカットが他のアプリで使われています。設定で変更してください。'));
+    if(!await register(store.data.settings.shortcut))report(new Error('ショートカットが他のアプリで使われています。設定で変更してください。'));
   }).catch(error=>{dialog.showErrorBox('起動できません',error.stack||error.message);app.quit();});
 }
 app.on('window-all-closed',()=>{});
 app.on('before-quit',event=>{
-  if(shuttingDown)return;event.preventDefault();shuttingDown=true;globalShortcut.unregisterAll();controller?.abort();mediaController?.abort();
+  if(shuttingDown)return;event.preventDefault();shuttingDown=true;recordingShortcut.close();globalShortcut.unregisterAll();controller?.abort();mediaController?.abort();
   if(downloadRequest)downloadRequest.cancelled=true;commandModel?.cancel();
   inputController?.abort();
   if(live){live.blocked='終了中';live.worker.fail(new Error('終了中'));}
-  Promise.allSettled([saving,enginePromise,mediaDone,commandDownload,live?.worker.close(),live?.writing]).then(async()=>{if(live&&!live.command&&live.raw&&!live.savedId)await remember(live.raw,live.raw,'終了時に保存');await recordings?.finish('interrupted');}).catch(error=>dialog.showErrorBox('保存できません',error.message)).finally(()=>app.quit());
+  Promise.allSettled([mcpServer?.close(),releaseWarmVoice(),saving,enginePromise,mediaDone,commandDownload,live?.worker.close(),live?.writing]).then(async()=>{if(live&&!live.command&&live.raw&&!live.savedId)await remember(live.raw,live.raw,'終了時に保存');await recordings?.finish('interrupted');}).catch(error=>dialog.showErrorBox('保存できません',error.message)).finally(()=>app.quit());
 });

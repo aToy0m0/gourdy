@@ -10,8 +10,8 @@ async function withLocalLlm(settings,signal,run){
   });
   const key = randomBytes(32).toString('hex');
   const child = spawn(settings.llmEngine, ['-m', settings.llmModel, '--host', '127.0.0.1', '--port', String(port),
-    '--api-key', key, '-c', '4096', '-b', '256', '-ub', '128', '--parallel', '1',
-    '-ngl', '0', '--jinja', '--reasoning-budget', String(settings.reasoningBudget||0), '--no-webui'],
+    '--api-key', key, '-c', '4096', '-b', '64', '-ub', '32', '--parallel', '1',
+    '-ngl', '0', '--no-repack', '--jinja', '--reasoning-budget', String(settings.reasoningBudget||0), '--no-webui'],
   { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
   let failure, closed = false, stderr = '';
   child.on('error', error => { failure = error; });

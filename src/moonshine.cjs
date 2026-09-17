@@ -19,7 +19,7 @@ class Moonshine {
       try {
         const message = JSON.parse(raw);
         if (message.error) throw new Error('音声認識に失敗しました: ' + message.error);
-        if (message.ready) { clearTimeout(this.readyTimer); this.readyResolve(); return; }
+        if (message.ready) { this.timing=message.timing;clearTimeout(this.readyTimer); this.readyResolve(); return; }
         const pending = this.pending.get(message.id);
         if (!pending) throw new Error('音声認識の応答番号が不正です。');
         clearTimeout(pending.timer); this.pending.delete(message.id); pending.resolve(message);

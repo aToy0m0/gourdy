@@ -1,5 +1,5 @@
 let microphoneStream=null,microphoneRecorder=null,microphoneGeneration=0,microphonePending=false;
-function microphoneFill(settings){stopMicrophoneTest().catch(report);$('noise-suppression').checked=settings.noiseSuppression;refreshMicrophones().catch(e=>{$('microphone-status').textContent=Microphone.message(e)});}
+function microphoneFill(settings){stopMicrophoneTest().catch(report);$('noise-suppression').checked=settings.noiseSuppression;$('noise-threshold').value=settings.noiseThresholdDb;thresholdLabel();refreshMicrophones().catch(e=>{$('microphone-status').textContent=Microphone.message(e)});}
 async function refreshMicrophones(){
   const devices=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput'),selected=data.settings.microphoneId;
   const options=[new Option('Windowsの既定','')];
@@ -35,3 +35,7 @@ for(const id of ['microphone-device','noise-suppression'])$(id).onchange=async()
 navigator.mediaDevices.addEventListener('devicechange',()=>refreshMicrophones().catch(e=>{$('microphone-status').textContent=Microphone.message(e)}));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMicrophoneTest().catch(report)});
 window.addEventListener('pagehide',()=>{microphoneGeneration++;microphoneStream?.getTracks().forEach(t=>t.stop());});
+
+function thresholdLabel(){const value=Number($('noise-threshold').value);$('noise-threshold-value').textContent=value===-80?'オフ':value+' dB';}
+$('noise-threshold').oninput=thresholdLabel;
+$('noise-threshold').onchange=()=>persist({noiseThresholdDb:Number($('noise-threshold').value)}).catch(e=>{microphoneFill(data.settings);report(e)});

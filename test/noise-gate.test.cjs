@@ -1,0 +1,2 @@
+const test=require('node:test'),assert=require('node:assert/strict'),Microphone=require('../src/microphone.js');
+test('noise gate keeps timing, quiet speech tail, and disabled audio intact',()=>{const quiet=new Float32Array(1600).fill(.001),voice=new Float32Array(1600).fill(.1),gate=Microphone.gate(-40);assert.ok(gate(quiet).every(x=>x===0));assert.equal(gate(voice),voice);assert.equal(gate(quiet),quiet);assert.equal(gate(quiet),quiet);assert.ok(gate(quiet).every(x=>x===0));assert.equal(Microphone.gate(-80)(quiet),quiet);assert.equal(gate(quiet).length,quiet.length);});

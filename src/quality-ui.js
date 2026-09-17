@@ -1,6 +1,6 @@
 function qualityFill(settings){
   $('command-shortcut').dataset.key=settings.commandShortcut;
-  $('command-shortcut').value=settings.commandShortcut.replace('CommandOrControl','Ctrl').replace('Super','Win').split('+').join(' + ');
+  $('command-shortcut').value=shortcutLabel(settings.commandShortcut);
   $('save-audio').checked=settings.saveAudio;$('replacement-list').replaceChildren();settings.replacements.forEach(replacementRow);
 }
 function renderCommandModel(){

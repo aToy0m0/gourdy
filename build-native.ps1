@@ -12,3 +12,8 @@ $imeSource = Join-Path $PSScriptRoot 'src\ImeDictionary.cs'
 $imeOutput = Join-Path $PSScriptRoot 'src\ImeDictionary.exe'
 & $compiler /nologo /target:exe /platform:x64 /reference:System.Web.Extensions.dll "/out:$imeOutput" $imeSource
 if ($LASTEXITCODE -ne 0) { throw 'IME辞書読み取りヘルパーをビルドできませんでした。' }
+
+$modifierSource = Join-Path $PSScriptRoot 'src\ModifierShortcut.cs'
+$modifierOutput = Join-Path $PSScriptRoot 'src\ModifierShortcut.exe'
+& $compiler /nologo /target:exe /platform:x64 /reference:System.Windows.Forms.dll "/out:$modifierOutput" $modifierSource
+if ($LASTEXITCODE -ne 0) { throw '修飾キー監視ヘルパーをビルドできませんでした。' }

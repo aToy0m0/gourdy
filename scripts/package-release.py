@@ -17,7 +17,7 @@ def main():
     built = json.loads((source / 'resources/app/package.json').read_text(encoding='utf-8'))
     if built['version'] != version:
         raise ValueError('Build version differs from package.json; rebuild first')
-    required = ['okosy.exe', 'LICENSE', 'README.md', 'docs/public/THIRD-PARTY-NOTICES.md',
+    required = ['Gourdy.exe', 'LICENSE', 'README.md', 'docs/public/THIRD-PARTY-NOTICES.md',
                 'resources/runtime/ffmpeg/ffmpeg.exe', 'resources/runtime/ffmpeg/ffprobe.exe',
                 'resources/runtime/ffmpeg/LICENSE.txt', 'resources/runtime/ffmpeg/BUILD.txt',
                 'LICENSE.electron.txt', 'LICENSES.chromium.html']
@@ -33,7 +33,7 @@ def main():
             raise ValueError(f'Unexpected distribution file: {relative}')
     output = ROOT / 'release'
     output.mkdir(exist_ok=True)
-    archive = output / f'okosy-{version}-windows-x64.zip'
+    archive = output / f'gourdy-{version}-windows-x64.zip'
     temporary = archive.with_suffix('.zip.partial')
     with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zipped:
         for file in files:

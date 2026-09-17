@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('continuation',{on:callback=>ipcRenderer.on('continuation',(_,value)=>callback(value)),copy:()=>ipcRenderer.invoke('continuation-copy'),insert:()=>ipcRenderer.invoke('continuation-insert'),hide:()=>ipcRenderer.invoke('continuation-hide')});
