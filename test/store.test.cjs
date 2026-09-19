@@ -33,3 +33,14 @@ test('既存録音キーと新しいコマンド初期キーが重なる場合�
 });
 
 test('continuation and preload migrate and retain opt-out',async()=>{const dir=await fs.mkdtemp(path.join(os.tmpdir(),'okosy-assist-'));const settings={...defaults};delete settings.continuationAssist;delete settings.fastStart;await fs.writeFile(path.join(dir,'app-data.json'),JSON.stringify({settings,history:[]}));const store=new Store(dir);await store.load();assert.equal(store.data.settings.continuationAssist,true);assert.equal(store.data.settings.fastStart,true);await store.write({...store.data,settings:{...store.data.settings,continuationAssist:false,fastStart:false}});const reopened=new Store(dir);await reopened.load();assert.equal(reopened.data.settings.continuationAssist,false);assert.equal(reopened.data.settings.fastStart,false);});
+
+test('上位補正は旧設定でもオフで、キー操作と独立して保存する',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'gourdy-correction-'));
+ try{const settings={...defaults};delete settings.advancedCorrection;
+ await fs.writeFile(path.join(dir,'app-data.json'),JSON.stringify({settings,history:[]}));
+ const store=new Store(dir);await store.load();assert.equal(store.data.settings.advancedCorrection,false);
+ await store.write({...store.data,settings:{...store.data.settings,advancedCorrection:true}});
+ const loaded=await new Store(dir).load();assert.equal(loaded.settings.advancedCorrection,true);assert.equal(loaded.settings.commandEnabled,false);
+ assert.throws(()=>validate({...defaults,advancedCorrection:'true'}));
+ }finally{await fs.rm(dir,{recursive:true,force:true});}
+});

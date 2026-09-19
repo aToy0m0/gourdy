@@ -1,6 +1,6 @@
 {
   "name": "local-dictation-streaming",
-  "version": "0.7.1",
+  "version": "0.7.3",
   "private": true,
   "description": "Windows向けローカル音声入力",
   "main": "src/main.cjs",
@@ -16,6 +16,8 @@
     "dist:installer": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "electron": "44.3.0",
     "electron-builder": "26.15.3",
     "playwright": "1.63.0"
@@ -48,15 +50,9 @@
           "!**/pip-*.dist-info/**",
           "!**/direct_url.json",
           "!bin/**",
-          "!Scripts/**"
-        ]
-      },
-      {
-        "from": "models",
-        "to": "models",
-        "filter": [
-          "Qwen3.5-0.8B-Q4_0.gguf",
-          "moonshine-small-ja/**/*"
+          "!Scripts/**",
+          "!Lib/site-packages/ja_ginza/**",
+          "!Lib/site-packages/ja_ginza-*.dist-info/**"
         ]
       },
       {
@@ -116,13 +112,16 @@
         "en_US"
       ],
       "language": "1041",
-      "packElevateHelper": false
+      "packElevateHelper": false,
+      "include": "build/installer.nsh"
     }
   },
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
     "jsonc-parser": "3.3.1",
-    "smol-toml": "1.8.0"
+    "smol-toml": "1.8.0",
+    "ws": "8.21.3"
   }
 }

@@ -13,7 +13,7 @@ def utf16(text):
 
 def reading(text):
     text = unicodedata.normalize('NFKC', text)
-    return ''.join(chr(ord(c) + 96) if '\u3041' <= c <= '\u3096' else c for c in text).upper()
+    return ''.join(chr(ord(c) - 96) if '\u30a1' <= c <= '\u30f6' else c for c in text).upper()
 
 
 def distance(a, b):
@@ -36,7 +36,7 @@ def analyze(text, glossary, nlp):
     terms = [(term, reading(term.get('reading', ''))) for term in glossary]
     tokens = [{'text': t.text, 'start': offset(t.idx), 'end': offset(t.idx + len(t)),
                'pos': t.pos_, 'tag': t.tag_, 'lemma': t.lemma_,
-               'reading': ''.join(t.morph.get('Reading')), 'head': t.head.i, 'dep': t.dep_}
+               'reading': reading(t.text if re.fullmatch(r'[ぁ-ゖァ-ヶー]+', t.text) else ''.join(t.morph.get('Reading')) or t.text), 'head': t.head.i, 'dep': t.dep_}
               for t in doc]
     chunks = [{'text': s.text, 'start': offset(s.start_char), 'end': offset(s.end_char),
                'head': s.root.i} for s in ginza.bunsetu_spans(doc)]
@@ -104,28 +104,28 @@ def analyze(text, glossary, nlp):
         # GiNZA can tag a noun followed by する as VERB (称号します, 操作する).
         return token.pos_ in {'NOUN', 'PROPN', 'X', 'SYM'} or token.tag_.startswith('名詞-')
     for i, token in enumerate(doc):
-        if not dictionary_token(token) or token.pos_ == 'SYM':
+        if token.pos_ in {'PUNCT', 'SPACE'}:
             continue
         for length in range(1, min(5, len(doc) - i) + 1):
             span = doc[i:i + length]
-            if any(not dictionary_token(t) for t in span):
+            if any(t.pos_ in {'PUNCT', 'SPACE'} for t in span):
                 break
             surface = span.text
-            kana = reading(''.join(''.join(t.morph.get('Reading')) or t.text for t in span))
+            kana = ''.join(tokens[t.i]['reading'] for t in span)
             for term, expected in terms:
                 target = term['term']
                 contexts = term.get('contexts', [])
                 context_ok = not contexts or any(c in token.sent.text for c in contexts)
                 if not context_ok or surface == target:
                     continue
-                alias = surface in term.get('aliases', [])
-                limit = min(1, len(expected) // 5)
-                close = (len(expected) >= 2 and kana == expected) or (len(expected) >= 5 and abs(len(kana) - len(expected)) <= limit and distance(kana, expected) <= limit)
+                alias = surface in term.get('aliases', []) or bool(re.fullmatch(r'[ぁ-ゖァ-ヶー]+', surface)) and reading(surface) == expected
+                limit = min(1, len(expected) // 4)
+                close = (len(expected) >= 2 and kana == expected) or (len(expected) >= 4 and all(dictionary_token(t) for t in span) and abs(len(kana) - len(expected)) <= limit and distance(kana, expected) <= limit)
                 if alias or close:
                     add(span.start_char, span.end_char, target, 'dictionary',
                         {'reading': kana, 'expected': expected, 'exactAlias': alias,
                          'contexts': contexts, 'pos': [t.pos_ for t in span]},
-                        alias and term.get('auto', False))
+                        False)
     # Homophones are alternatives, not several forced replacements of one span.
     for candidate in candidates:
         if candidate['kind'] == 'dictionary' and any(
@@ -159,7 +159,7 @@ def analyze(text, glossary, nlp):
             previous['text'] = encoded[previous['start'] * 2:previous['end'] * 2].decode('utf-16-le')
         else:
             grouped.append(dict(segment))
-    return {'tokens': tokens, 'bunsetsu': chunks, 'candidates': candidates, 'protected': protected, 'segments': grouped}
+    return {'readingSource': 'text-derived', 'reading': ''.join(t['reading'] for t in tokens), 'tokens': tokens, 'bunsetsu': chunks, 'candidates': candidates, 'protected': protected, 'segments': grouped}
 
 
 def main():
@@ -169,7 +169,7 @@ def main():
     text = request['text']
     if not isinstance(text, str) or not 1 <= len(text) <= 12000:
         raise ValueError('解析対象は1〜12000文字にしてください。')
-    nlp = spacy.load('ja_ginza', exclude=['ner'])
+    nlp = spacy.load(request.get('modelPath') or 'ja_ginza', exclude=['ner'])
     json.dump(analyze(text, request.get('glossary', []), nlp), sys.stdout, ensure_ascii=False)
 
 

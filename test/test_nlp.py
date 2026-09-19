@@ -79,6 +79,20 @@ class NLPTests(unittest.TestCase):
         self.assertTrue(any(t['dep'] == 'obj' for t in result['tokens']))
         self.assertEqual(distance('クロード', 'クロート'), 1)
 
+    def test_kana_reading_across_non_noun_tokens(self):
+        glossary = [{'term': 'Claude', 'reading': 'くろーど', 'aliases': ['くろーど'], 'contexts': [], 'auto': True}]
+        for text in ['くろーどで文章を書きます', 'クロードで文章を書きます']:
+            result = analyze(text, glossary, self.nlp)
+            self.assertTrue(any(c['after'] == 'Claude' for c in result['candidates']), text)
+            self.assertFalse(any(c['kind'] == 'dictionary' and c['automatic'] for c in result['candidates']))
+            self.assertEqual(result['readingSource'], 'text-derived')
+            self.assertTrue(result['reading'].startswith('くろーど'))
+        result = analyze('クラウドに保存します', glossary, self.nlp)
+        self.assertFalse(any(c['kind'] == 'dictionary' and c['automatic'] for c in result['candidates']))
+        short = analyze('はしでご飯を食べます', [{'term': '橋', 'reading': 'はし', 'aliases': ['はし'], 'auto': True}], self.nlp)
+        self.assertTrue(any(c['kind'] == 'dictionary' for c in short['candidates']))
+        self.assertFalse(any(c['kind'] == 'dictionary' and c['automatic'] for c in short['candidates']))
+
     def test_explicit_repair_candidates(self):
         result = analyze('金額は15万円、いや50万円です。', [], self.nlp)
         repairs = [c for c in result['candidates'] if c['kind'] == 'self_repair']

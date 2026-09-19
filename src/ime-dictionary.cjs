@@ -1,3 +1,4 @@
+const {normalizeReading}=require('./dictionary-reading.js');
 const {execFile}=require('node:child_process');
 const path=require('node:path');
 const {createHash}=require('node:crypto');
@@ -10,6 +11,7 @@ function mergeIme(data,entries,{automatic=false}={}){
   if(!entry||typeof entry.term!=='string'||typeof entry.reading!=='string')throw new Error('Windows辞書の単語形式が不正です。');
   const item={term:entry.term.trim(),reading:entry.reading.trim()};
   if(!item.term||!item.reading||item.term.length>80||item.reading.length>120||/[\r\n\t\0]/.test(item.term+item.reading)){stats.skipped++;continue;}
+  try{item.reading=normalizeReading(item.reading);}catch{stats.skipped++;continue;}
   const id=key(item);
   if(existing.has(id)){stats.duplicates++;seen.add(id);continue;}
   if(automatic&&seen.has(id)){stats.previouslyImported++;continue;}

@@ -46,3 +46,10 @@ Thumbs.db
 *.dmp
 *.tmp
 *.pid
+
+# BYOK credentials (only stored under the Windows user profile at runtime)
+credentials/
+*.key
+
+# Local promotional video workspace and generated media
+/video/

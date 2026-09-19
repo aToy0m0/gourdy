@@ -1,7 +1,6 @@
 const http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path'),{randomBytes,timingSafeEqual}=require('node:crypto');
-const {Server}=require('@modelcontextprotocol/sdk/server/index.js');
-const {StreamableHTTPServerTransport}=require('@modelcontextprotocol/sdk/server/streamableHttp.js');
-const {ListToolsRequestSchema,CallToolRequestSchema}=require('@modelcontextprotocol/sdk/types.js');
+const {Server,createMcpHandler}=require('@modelcontextprotocol/server');
+const {toNodeHandler}=require('@modelcontextprotocol/node');
 const tools=[
  ['prepare_file','ローカル音声・動画を検査して文字起こしジョブを保存します。まだ認識は開始しません。',{path:{type:'string',description:'音声・動画の絶対パス'}},['path']],
  ['start_transcription','保存したジョブの未完了区間を開始・再開します。すぐにIDを返すのでget_transcriptionで進捗を確認してください。',{id:{type:'string'}},['id']],
@@ -32,16 +31,20 @@ class LocalMcp {
   if(!req.headers['content-type']?.startsWith('application/json'))return reject(415,'Use application/json');
   let bytes=0,chunks=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>65536)return reject(413,'Request too large');chunks.push(chunk);}
   let body;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{return reject(400,'Invalid JSON');}
+  // Explicit legacy compatibility; modern requests never downgrade after an error.
+  const handler=createMcpHandler(()=>{
   const server=new Server({name:'Gourdy',version:this.version},{capabilities:{tools:{}}});
-  server.setRequestHandler(ListToolsRequestSchema,async()=>({tools}));
-  server.setRequestHandler(CallToolRequestSchema,async request=>{
+  server.setRequestHandler('tools/list',async()=>({tools}));
+  server.setRequestHandler('tools/call',async request=>{
    const name=request.params.name,args=request.params.arguments||{},tool=tools.find(t=>t.name===name);
    try{if(!tool||!args||Array.isArray(args)||Object.keys(args).some(k=>!Object.hasOwn(tool.inputSchema.properties,k))||tool.inputSchema.required.some(k=>typeof args[k]!=='string'||!args[k]||args[k].length>4096))throw new Error('ツール名または引数が不正です。');
     const value=await this.handlers[name](args);return {content:[{type:'text',text:JSON.stringify(value)}]};
    }catch(e){return {isError:true,content:[{type:'text',text:e.message}]};}
   });
-  const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true});
-  res.on('close',()=>{server.close().catch(this.onError)});await server.connect(transport);await transport.handleRequest(req,res,body);
+  return server;
+  },{legacy:'stateless',responseMode:'auto',maxSubscriptions:0,onerror:this.onError});
+  try{await toNodeHandler(handler,{onerror:this.onError})(req,res,body);}
+  finally{await handler.close();}
  }
 }
 async function localMediaPath(file){if(typeof file!=='string'||!path.isAbsolute(file)||file.startsWith('\\\\')||!['.wav','.mp3','.m4a','.mp4','.webm','.mkv','.mov','.flac','.ogg','.aac','.wma','.wmv'].includes(path.extname(file).toLowerCase()))throw new Error('対応するローカル音声・動画の絶対パスを指定してください。');const resolved=await fs.realpath(file);if(resolved.startsWith('\\\\'))throw new Error('ネットワーク上のファイルは指定できません。');if(!(await fs.stat(resolved)).isFile())throw new Error('通常の音声・動画ファイルを指定してください。');return resolved;}

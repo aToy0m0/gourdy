@@ -1,5 +1,13 @@
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('dictation',{
+  showSetup:()=>ipcRenderer.invoke('show-setup'),
+  downloadLocalModels:()=>ipcRenderer.invoke('local-models-download'),
+  cancelLocalModels:()=>ipcRenderer.invoke('local-models-cancel'),
+  saveCloudKey:(provider,key)=>ipcRenderer.invoke('cloud-key-save',provider,key),
+  deleteCloudKey:provider=>ipcRenderer.invoke('cloud-key-delete',provider),
+  miniMotionReady:id=>ipcRenderer.invoke('mini-motion-ready',id),
+  miniMotionDone:(id,direction)=>ipcRenderer.invoke('mini-motion-done',id,direction),
+  miniIdleHide:()=>ipcRenderer.invoke('mini-idle-hide'),
   miniInfo:(text,open=false)=>ipcRenderer.invoke('mini-info',text,open),
   copyMcpConfiguration:()=>ipcRenderer.invoke('mcp-copy-configuration'),
   mcpClients:()=>ipcRenderer.invoke('mcp-clients'),
@@ -10,7 +18,7 @@ contextBridge.exposeInMainWorld('dictation',{
   continuationCopy:()=>ipcRenderer.invoke('continuation-copy'),continuationInsert:()=>ipcRenderer.invoke('continuation-insert'),
   forceStop:()=>ipcRenderer.invoke('force-stop'),
   reportError:message=>ipcRenderer.invoke('report-mini-error',message),
-  downloadCommandModel:()=>ipcRenderer.invoke('download-command-model'),cancelCommandDownload:()=>ipcRenderer.invoke('cancel-command-download'),
+  downloadCommandModel:(purpose='command')=>ipcRenderer.invoke('download-command-model',purpose),cancelCommandDownload:()=>ipcRenderer.invoke('cancel-command-download'),
   recordingList:()=>ipcRenderer.invoke('recording-list'),recordingPreview:id=>ipcRenderer.invoke('recording-preview',id),recordingDelete:id=>ipcRenderer.invoke('recording-delete',id),recordingRetry:id=>ipcRenderer.invoke('recording-retry',id),
   copySubtitles:text=>ipcRenderer.invoke('subtitle-copy',text),meetingSubtitles:(id,index)=>ipcRenderer.invoke('meeting-subtitles',id,index),meetingList:()=>ipcRenderer.invoke('meeting-list'),meetingRead:id=>ipcRenderer.invoke('meeting-read',id),meetingSelect:()=>ipcRenderer.invoke('meeting-select'),meetingPreview:(id,start)=>ipcRenderer.invoke('meeting-preview',id,start),meetingRun:id=>ipcRenderer.invoke('meeting-run',id),meetingCopy:id=>ipcRenderer.invoke('meeting-copy',id),meetingExport:id=>ipcRenderer.invoke('meeting-export',id),meetingDelete:id=>ipcRenderer.invoke('meeting-delete',id), cancelMedia:()=>ipcRenderer.invoke('cancel-media'),
   exportIme:()=>ipcRenderer.invoke('export-ime'),importDictionaryFile:()=>ipcRenderer.invoke('import-dictionary-file'),
@@ -18,5 +26,5 @@ contextBridge.exposeInMainWorld('dictation',{
   closeSettings:()=>ipcRenderer.invoke('close-settings'), openSettings:tab=>ipcRenderer.invoke('open-settings',tab), hide:()=>ipcRenderer.invoke('hide-mini'), destroy:action=>ipcRenderer.invoke('destroy-data',action),
   deleteHistory:id=>ipcRenderer.invoke('delete-history',id), copy:text=>ipcRenderer.invoke('copy',text), pasteAtCursor:text=>ipcRenderer.invoke('paste-at-cursor',text),
   liveStart:mode=>ipcRenderer.invoke('live-start',mode), liveChunk:bytes=>ipcRenderer.invoke('live-chunk',bytes), liveFinish:()=>ipcRenderer.invoke('live-finish'),liveEnd:()=>ipcRenderer.invoke('live-end'),cancel:()=>ipcRenderer.invoke('cancel'),
-  on:(channel,callback)=>{if(!['info-dismissed','continuation','command-model-changed','command-progress','command-start','command-release','command-result','toggle','notice','settings-changed','data-changed','request-close','select-tab','phase-changed','meeting-changed'].includes(channel))throw new Error('Unknown event');ipcRenderer.on(channel,(_,value)=>callback(value));}
+  on:(channel,callback)=>{if(!['setup-needed','local-models-changed','mini-motion','info-dismissed','continuation','command-model-changed','command-progress','command-start','command-release','command-result','toggle','notice','settings-changed','data-changed','request-close','select-tab','phase-changed','meeting-changed'].includes(channel))throw new Error('Unknown event');ipcRenderer.on(channel,(_,value)=>callback(value));}
 });

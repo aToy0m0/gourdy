@@ -17,8 +17,8 @@ test('途中の不正行、壊れた文字コード、空ファイル、過大�
  for(const row of ['\t空','空\t','よみ\t表\u0000記','よみ\t'+ '長'.repeat(81)])assert.throws(()=>parseDictionary(Buffer.from(row)),/1行目/);
 });
 test('ファイル内の重複を除き既存の用語と履歴を維持、上限を報告する',()=>{
- const data={settings:{terms:Array.from({length:99},(_,i)=>({term:`既存${i}`,reading:`よみ${i}`}))},history:[{text:'保持'}]};
- const result=mergeIme(data,parseDictionary(Buffer.from('ヨミ0\t既存0\nしんご\t新語\nシンゴ\t新語\nあふれ\t追加不可')));
+ const data={settings:{terms:Array.from({length:99},(_,i)=>({term:`既存${i}`,reading:'よみ'+String.fromCharCode(0x3041+i%80)}))},history:[{text:'保持'}]};
+ const result=mergeIme(data,parseDictionary(Buffer.from('ヨミァ\t既存0\nしんご\t新語\nシンゴ\t新語\nあふれ\t追加不可')));
  assert.equal(result.stats.added,1);assert.equal(result.stats.duplicates,2);assert.equal(result.stats.overflow,1);
  assert.equal(result.data.settings.terms.length,100);assert.deepEqual(result.data.history,data.history);assert.equal(data.settings.terms.length,99);
 });

@@ -5,21 +5,33 @@ function qualityFill(settings){
 }
 function renderCommandModel(){
  if(!data)return;
+ const cloud=['openai','gemini'].includes(data.settings.aiProvider);
  const model=data.commandModel||{state:'missing'},active=['downloading','verifying'].includes(model.state),idle=data.phase==='idle';
+ $('fast-start').disabled=cloud||!idle;
+ $('progressive-correction').checked=data.settings.progressiveCorrection;
+ $('progressive-correction').disabled=!idle;
+ $('advanced-correction').checked=data.settings.advancedCorrection;
+ $('advanced-correction').disabled=cloud||!idle||(!data.settings.advancedCorrection&&model.state!=='ready');
+ $('correction-download').hidden=cloud||active||model.state==='ready';
+ $('correction-download').disabled=!idle;
  $('command-enabled').checked=data.settings.commandEnabled;
- $('command-enabled').disabled=!idle||model.state!=='ready';
+ $('command-enabled').disabled=!idle||(!cloud&&!data.settings.commandEnabled&&model.state!=='ready');
  $('command-options').hidden=!data.settings.commandEnabled;
- $('command-download').hidden=active||model.state==='ready';
+ $('command-download').hidden=cloud||active||model.state==='ready';
  $('command-download').disabled=!idle;
  $('command-download').textContent=model.state==='error'?'再ダウンロードして有効にする':'ダウンロードして有効にする';
  $('command-download-cancel').hidden=!active;$('command-download-cancel').disabled=false;
- $('command-model-status').textContent=model.state==='downloading'?`ダウンロード中 ${Math.floor(model.received/model.total*100)}% · ${Math.floor(model.received/1e6)} / ${Math.ceil(model.total/1e6)} MB`:model.state==='verifying'?'モデルを検証中':model.state==='ready'?(data.settings.commandEnabled?'有効 · モデルは処理時だけ読み込みます。':'ダウンロード済み · オフでもモデルは保存されます。'):model.error||'初期状態はオフです。';
+ $('command-model-status').textContent=cloud?'音声コマンドは選択したAPIを使用します。専用モデルのダウンロードは不要です。':model.state==='downloading'?`ダウンロード中 ${Math.floor(model.received/model.total*100)}% · ${Math.floor(model.received/1e6)} / ${Math.ceil(model.total/1e6)} MB`:model.state==='verifying'?'モデルを検証中':model.state==='ready'?(data.settings.commandEnabled||data.settings.advancedCorrection?'有効 · モデルは処理時だけ読み込みます。':'ダウンロード済み · オフでもモデルは保存されます。'):model.error||'初期状態はオフです。';
 }
 $('command-enabled').onchange=async()=>{try{await persist({commandEnabled:$('command-enabled').checked});}catch(error){report(error);}finally{renderCommandModel();}};
-$('command-download').onclick=async()=>{
+$('progressive-correction').onchange=async()=>{try{await persist({progressiveCorrection:$('progressive-correction').checked});}catch(error){report(error);}finally{renderCommandModel();}};
+$('advanced-correction').onchange=async()=>{try{await persist({advancedCorrection:$('advanced-correction').checked});}catch(error){report(error);}finally{renderCommandModel();}};
+$('correction-download').onclick=()=>downloadSharedModel('correction');
+$('command-download').onclick=()=>downloadSharedModel('command');
+async function downloadSharedModel(purpose){
  if(!await saveCurrent(true))return;
  $('command-download').disabled=true;
- try{data=await api.downloadCommandModel();$('status').textContent=data.settings.commandEnabled?'キー操作を有効にしました。':'ダウンロードを中止しました。';$('status').classList.remove('error');}
+ try{data=await api.downloadCommandModel(purpose);$('status').textContent=data.settings[purpose==='correction'?'advancedCorrection':'commandEnabled']?(purpose==='correction'?'上位モデルでの補正を有効にしました。':'キー操作を有効にしました。'):'ダウンロードを中止しました。';$('status').classList.remove('error');}
  catch(error){report(error);}finally{renderCommandModel();}
 };
 $('command-download-cancel').onclick=()=>api.cancelCommandDownload().catch(report);

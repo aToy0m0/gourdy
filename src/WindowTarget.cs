@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -50,6 +50,28 @@ class WindowTarget {
     if (pid == excluded || title.Length == 0 || !IsWindowVisible(window)) return null;
     return new { handle = window.ToInt64().ToString(), pid = pid, title = title.ToString() };
   }
+  [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr parent, EnumProc callback, IntPtr data);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr window, StringBuilder text, int size);
+  // Chromium can leave its input child hidden after a no-activate hide/show cycle.
+  // Only restore that child of the caller's visible window; never activate it.
+  static object RestoreInput(IntPtr parent, uint expected) {
+    uint actual; GetWindowThreadProcessId(parent,out actual);
+    if(!IsWindow(parent)||actual!=expected)throw new Exception("クリック領域の復元対象が変わりました。");
+    int found=0,restored=0;
+    if(!IsWindowVisible(parent))return new {found,restored};
+    EnumChildWindows(parent,delegate(IntPtr child,IntPtr data){
+      var name=new StringBuilder(100);GetClassName(child,name,name.Capacity);
+      if(name.ToString()!="Chrome_RenderWidgetHostHWND")return true;
+      found++;
+      if(!IsWindowVisible(child)&&IsWindowVisible(parent)){
+        ShowWindow(child,4); // SW_SHOWNOACTIVATE: preserve the dictation target focus.
+        if(IsWindowVisible(parent)&&!IsWindowVisible(child))throw new Exception("クリック受付領域を復元できませんでした。");
+        restored++;
+      }
+      return true;
+    },IntPtr.Zero);
+    return new {found,restored};
+  }
   [STAThread] static int Main(string[] args) {
     Console.OutputEncoding = new UTF8Encoding(false);
     Console.InputEncoding = new UTF8Encoding(false);
@@ -72,7 +94,8 @@ class WindowTarget {
         if(!released)throw new Exception("コマンドは30秒までです。キーを離してください。");
         Console.WriteLine("{\"released\":true}");return 0;
       }
-      if(args.Length==3 && args[0]=="command-start") result=LiveWriter.CommandStart(new IntPtr(Int64.Parse(args[1])),UInt32.Parse(args[2]));
+      if(args.Length==3 && args[0]=="restore-input") result=RestoreInput(new IntPtr(Int64.Parse(args[1])),UInt32.Parse(args[2]));
+      else if(args.Length==3 && args[0]=="command-start") result=LiveWriter.CommandStart(new IntPtr(Int64.Parse(args[1])),UInt32.Parse(args[2]));
       else if(args.Length==3 && args[0]=="command") result=CommandWriter.Run(new IntPtr(Int64.Parse(args[1])),UInt32.Parse(args[2]),new JavaScriptSerializer().Deserialize<CommandRequest>(Console.In.ReadToEnd()));
       else
       if(args.Length==2 && args[0]=="pick-paste") result=PickPaste(UInt32.Parse(args[1]));

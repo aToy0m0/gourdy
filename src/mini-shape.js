@@ -15,6 +15,7 @@ async function updateMiniShape(){
     const element=document.querySelector(selector);if(element.hidden)continue;
     const r=element.getBoundingClientRect();context.fillRect(r.x,r.y,r.width,r.height);
   }
+  if(document.body.dataset.motion)context.fillRect(0,0,width,height);
   const pixels=context.getImageData(0,0,width,height).data,rects=[];
   for(let y=0;y<height;y++)for(let x=0;x<width;){
     if(!pixels[(y*width+x)*4+3]){x++;continue;}
@@ -28,7 +29,7 @@ updateMiniShape().catch(shapeError);
 function scheduleMiniShape(){cancelAnimationFrame(shapeFrame);shapeFrame=requestAnimationFrame(()=>updateMiniShape().catch(shapeError));}
 for(const id of ['info','shortcut-tip'])new MutationObserver(scheduleMiniShape).observe(document.getElementById(id),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true});
 
-new MutationObserver(scheduleMiniShape).observe(document.body,{attributes:true,attributeFilter:['class']});
+new MutationObserver(scheduleMiniShape).observe(document.body,{attributes:true,attributeFilter:['class','data-motion']});
 
 let shapeFrame;
 window.addEventListener('resize',()=>{cancelAnimationFrame(shapeFrame);shapeFrame=requestAnimationFrame(()=>updateMiniShape().catch(shapeError));});

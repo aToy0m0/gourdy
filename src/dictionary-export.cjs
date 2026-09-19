@@ -1,4 +1,4 @@
-const normalizeReading=value=>value.normalize('NFKC').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+const {normalizeReading}=require('./dictionary-reading.js');
 function exportDictionary(terms){
  if(!Array.isArray(terms))throw new Error('辞書の形式が不正です。');
  const rows=[];

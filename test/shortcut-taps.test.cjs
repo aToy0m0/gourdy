@@ -1,0 +1,4 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {ShortcutTaps,shouldHideMini}=require('../src/shortcut-taps.cjs');
+test('単押しと2回押しを分離し、2回押しで録音操作しない',t=>{t.mock.timers.enable({apis:['setTimeout']});let single=0,double=0;const taps=new ShortcutTaps(()=>single++,()=>double++);taps.tap();t.mock.timers.tick(200);taps.tap();t.mock.timers.tick(400);assert.deepEqual([single,double],[0,1]);taps.tap();t.mock.timers.tick(280);assert.deepEqual([single,double],[1,1]);taps.tap();taps.cancel();t.mock.timers.tick(300);assert.equal(single,1);});
+test('常時表示・録音・追加表示の全組合せで自動格納条件を検査',()=>{for(const pinned of [true,false])for(const phase of ['idle','starting','recording','processing'])for(const info of [true,false])for(const bubble of [true,false])for(const editor of [true,false])assert.equal(shouldHideMini({pinned,phase,info,bubble,editor}),!pinned&&phase==='idle'&&!info&&!bubble&&!editor);});

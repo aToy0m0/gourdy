@@ -29,7 +29,8 @@ const examples=[
 ].flatMap(([instruction,result])=>[{role:'user',content:JSON.stringify({instruction,selection:''})},{role:'assistant',content:JSON.stringify(result)}]);
 async function planCommand(instruction,settings,signal,selection=''){
   if(typeof instruction!=='string'||!instruction.trim()||instruction.length>1000)throw new Error('コマンドを短く話してください。');
-  const plan=await withLocalLlm(settings,signal,request=>request({messages:[{role:'system',content:settings.reasoningBudget?prompt.replace(' /no_think',''):prompt},...examples,{role:'user',content:JSON.stringify({instruction,selection:typeof selection==='string'&&selection.length<=256?selection:null})}],schema,maxTokens:settings.reasoningBudget?2200:1000,timeout:90000}));
+  const run=request=>request({messages:[{role:'system',content:settings.reasoningBudget?prompt.replace(' /no_think',''):prompt},...examples,{role:'user',content:JSON.stringify({instruction,selection:typeof selection==='string'&&selection.length<=256?selection:null})}],schema,maxTokens:settings.reasoningBudget?2200:1000,timeout:90000});
+  const plan=await(settings.cloudRequest?run(settings.cloudRequest):withLocalLlm(settings,signal,run));
   try{return validatePlan(plan);}catch(error){error.plan=plan;throw error;}
 }
 module.exports={KEYS,schema,validatePlan,planCommand};

@@ -1,7 +1,7 @@
 const { execFile } = require('node:child_process');
 const path = require('node:path');
 async function windowTarget(command, target, payload, signal) {
-  if (!['capture', 'list', 'pick-paste', 'focus', 'paste', 'live-start', 'live-write', 'command-start', 'command', 'wait-release'].includes(command)) throw new Error('ウィンドウ操作が不正です。');
+  if (!['restore-input', 'capture', 'list', 'pick-paste', 'focus', 'paste', 'live-start', 'live-write', 'command-start', 'command', 'wait-release'].includes(command)) throw new Error('ウィンドウ操作が不正です。');
   const args = ['capture', 'list', 'pick-paste', 'wait-release'].includes(command) ? [String(process.pid)] : [target?.handle, String(target?.pid)];
   if (args.some(value => typeof value !== 'string' || !/^\d+$/.test(value))) throw new Error('入力先が選択されていません。');
   try {

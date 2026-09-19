@@ -3,6 +3,8 @@ const net=require('node:net'),path=require('node:path'),fs=require('node:fs/prom
 const {randomBytes}=require('node:crypto');
 const {setTimeout:delay}=require('node:timers/promises');
 async function withLocalLlm(settings,signal,run){
+  const context=settings.llmContext??4096;
+  if(!Number.isInteger(context)||context<1024||context>4096)throw new Error('LLMの文脈長は1024〜4096にしてください。');
   for(const key of ['llmEngine','llmModel'])if(!path.isAbsolute(settings[key]||'')||!(await fs.stat(settings[key])).isFile())throw new Error(`${key}を確認してください。`);
   const port = await new Promise((resolve, reject) => {
     const server = net.createServer(); server.on('error', reject);
@@ -10,8 +12,9 @@ async function withLocalLlm(settings,signal,run){
   });
   const key = randomBytes(32).toString('hex');
   const child = spawn(settings.llmEngine, ['-m', settings.llmModel, '--host', '127.0.0.1', '--port', String(port),
-    '--api-key', key, '-c', '4096', '-b', '64', '-ub', '32', '--parallel', '1',
-    '-ngl', '0', '--no-repack', '--jinja', '--reasoning-budget', String(settings.reasoningBudget||0), '--no-webui'],
+    '--api-key', key, '-c', String(context), '-b', '32', '-ub', '8', '--parallel', '1',
+    '-ngl', '0', '--no-repack', '--ctx-checkpoints', '0', '--cache-ram', '0', '--no-cache-prompt',
+    '--jinja', '--reasoning-budget', String(settings.reasoningBudget||0), '--no-webui'],
   { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
   let failure, closed = false, stderr = '';
   child.on('error', error => { failure = error; });

@@ -1,17 +1,16 @@
 # 配布とリリース
 
-現行版は **0.7.1（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.1) でWindows x64用ZIPと対応ソースを配布しています。
-インストーラーは公開準備中です。
+現在の配布版は **0.7.3（プレリリース）** です。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.3) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
 
 ## 配布物
 
-- `gourdy-0.7.1-windows-x64-setup.exe`：公開準備中。ユーザー単位のインストーラー。標準モデル・実行環境を同梱し、スタートメニューへ登録。
-- `gourdy-0.7.1-windows-x64.zip`：アプリ、標準モデル、依存ランタイム、公開ドキュメント、ライセンス。
-- `gourdy-0.7.1-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
+- `gourdy-0.7.3-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
+- `gourdy-0.7.3-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
+- `gourdy-0.7.3-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
 - `SHA256SUMS.txt`：公開済み配布物のSHA256。
 
-インストーラー公開まではZIP版を使用します。ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
+ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
 追加のコマンドモデルは同梱せず、有効化したときに取得します。
 
 ## 作成
@@ -21,7 +20,7 @@ npm test
 npm run test:nlp
 npm run dist -- --config.directories.output=dist-staged
 npm run release:zip
-Expand-Archive release/gourdy-0.7.1-windows-x64.zip -DestinationPath dist-installer-input
+Expand-Archive release/gourdy-0.7.3-windows-x64.zip -DestinationPath dist-installer-input
 npm run dist:installer -- --prepackaged dist-installer-input --config.directories.output=dist-installer
 ```
 
@@ -51,5 +50,18 @@ GitHubが自動生成するGourdyのSource code ZIPは、第三者対応ソー�
 
 `docs/public/` だけを公開ドキュメントとして追跡・同梱します。
 ローカルの調査・作業メモ、録音、モデル、ランタイム、生成物はGit管理から除外します。
-バイナリと必要なモデル・ランタイムはリリースZIPとして提供します。
+バイナリとランタイムはリリースZIPとして提供し、モデルは設定画面から任意取得します。
 バージョンは明示的な判断なしに変更しません。
+
+
+## 0.7.3の追加内容
+
+- 泡の出現・逆再生での格納、2回押しで常時表示を切替。
+- お知らせ・吹き出しが本体の後ろへ回らない親子ウィンドウ設定。
+- 任意のOpenAI Realtime + Luna / Gemini BYOK。初回は未設定。ローカルモデル取得はオプトインで、BYOKのAPI料金は別途必要。
+- APIキーのWindows暗号化保存。認識・補正・キー操作の通信失敗を明示。
+- OpenAIとGeminiの実APIで13秒の合成音声を検証。途中認識・停止確定・補正が成功。実マイクと外部入力欄を含む通し試験は未完了。
+- 再表示後のクリック不能、右Ctrl単独の誤判定、Gemini停止待ち、設定の未装飾選択欄を修正。
+- 実インストール・更新を確認。完全アンインストールは未検証で、キー削除処理は隔離ファイルで検証。
+
+0.7.3のZIP・インストーラーにはMoonshine・Qwen・ja_ginzaのモデル重みを含めません。実行環境とSudachiの辞書は同梱します。初回のお知らせから接続方法を選択し、モデル取得はオプトインです。

@@ -1,0 +1,62 @@
+[
+  {
+    "file": "moonshine-small-ja/adapter.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/adapter.ort",
+    "bytes": 2869296,
+    "sha256": "edcf20b9d0bc0a92bc0ddf37d8b96599de35a6cbee970368ed74c774b055e546"
+  },
+  {
+    "file": "moonshine-small-ja/cross_kv.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/cross_kv.ort",
+    "bytes": 5358752,
+    "sha256": "fbd18ec7b9514391d7121f4d4abec1be05a60e94a0f174061428380bf772c3e7"
+  },
+  {
+    "file": "moonshine-small-ja/decoder_kv.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/decoder_kv.ort",
+    "bytes": 61314512,
+    "sha256": "1246d81eeb96df05d0163dcd48ce271a061b01aa3aea047239fbde22485248be"
+  },
+  {
+    "file": "moonshine-small-ja/encoder.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/encoder.ort",
+    "bytes": 44358376,
+    "sha256": "1da7cc82cb91d30ad9dc4e338fb80e7a2336b2c8ad634b826419222698fbe3a5"
+  },
+  {
+    "file": "moonshine-small-ja/frontend.model.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/frontend.model.ort",
+    "bytes": 31208,
+    "sha256": "de65092295f011a39ee569f03d073e3564d94252efd74ebde16d720bcc43e38b"
+  },
+  {
+    "file": "moonshine-small-ja/frontend.weights.ort",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/frontend.weights.ort",
+    "bytes": 7769288,
+    "sha256": "4e89578a495a6c4dd5632e7acaf2fc38841e6831738c2702ef10f873125a14ec"
+  },
+  {
+    "file": "moonshine-small-ja/streaming_config.json",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/streaming_config.json",
+    "bytes": 512,
+    "sha256": "12d16c7f5ea6734d197b79baf47914ea7e996d6fca8d303a19aca10d0617cecc"
+  },
+  {
+    "file": "moonshine-small-ja/tokenizer.bin",
+    "url": "https://download.moonshine.ai/model/small-streaming-ja/quantized_26_08_23/tokenizer.bin",
+    "bytes": 101836,
+    "sha256": "9f2599f20c3a9b03d79dbe122e443647c6589ce8e5c73e65e5c5d6f73485d5de"
+  },
+  {
+    "file": "Qwen3.5-0.8B-Q4_0.gguf",
+    "url": "https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF/resolve/8fea620810c4afa23dd6443f999a48574c1611a3/Qwen3.5-0.8B-Q4_0.gguf",
+    "bytes": 563036064,
+    "sha256": "57d1997790d1744fba5b40a7317df71ea5e2acee28c47e78f0cce39c0703f8cf"
+  },
+  {
+    "file": "ja_ginza-5.2.0-py3-none-any.whl",
+    "bytes": 59112919,
+    "sha256": "c31a2ac57a7c2a1440f7e58111e37306c20dfaf08fd5a3f6f065948ff126cb30",
+    "url": "https://files.pythonhosted.org/packages/f0/f8/d1bbc8bd545e61cacb7c0f0fedcfc041e2853e573ec4825136a8bd85e586/ja_ginza-5.2.0-py3-none-any.whl"
+  }
+]

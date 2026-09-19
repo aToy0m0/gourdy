@@ -20,6 +20,9 @@ body:hover #hide,#hide:focus-visible{opacity:1}
 .icon-button{background:var(--icon-background,#e4e4e4);color:#222}#wave i{background:var(--wave-background,#777)}body.recording #wave i{background:var(--wave-active-background,#444)}
 
 #shell{filter:drop-shadow(0 2px 4px #00000020)}
+#shell{transform-origin:94px 90px}
+body[data-motion] #hide,body[data-motion] #resize-handle,body[data-motion] #shortcut-tip{visibility:hidden}
+body[data-motion] #drag-handle{pointer-events:none}
 
 
 #info{left:25px;top:253px;width:40px;height:40px;background:#fff;color:#222;box-shadow:0 2px 5px #00000020;z-index:2}#info svg{width:20px;height:20px}

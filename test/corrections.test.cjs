@@ -35,6 +35,12 @@ test('辞書の不正形式を明示的に拒否', () => {
   assert.throws(() => validateGlossary([{ term: 'Claude' }]));
   assert.throws(() => validateGlossary([{ term: 'Claude', reading: 'クロード', aliases: [''], contexts: [], auto: true }]));
 });
+test('短い同音語もLLM選択に従い、未選択なら変換しない',()=>{
+ const text='道路の端を歩きます',c={id:0,kind:'dictionary',start:3,end:4,before:'端',after:'橋',automatic:false,evidence:{expected:'はし',contexts:[]}};
+ const analysis={candidates:[c],tokens:[],protected:[]},segment={text,start:0,end:text.length};
+ assert.equal(validateEdits(text,analysis,segment,{selected:[],edits:[]}).edits.length,0);
+ assert.equal(validateEdits(text,analysis,segment,{selected:[0],edits:[]}).edits.length,1);
+});
 test('文法補正を装った名詞の変更を拒否', () => {
   const text = '会社に行く。';
   const result = validateEdits(text, { candidates: [], protected: [], tokens: [{ start: 0, end: 2, pos: 'NOUN' }] }, { text, start: 0, end: text.length }, {
