@@ -27,9 +27,9 @@ test('旧設定を引き継ぎ、設定と履歴を一緒に保存・再読込�
 
 test('既存録音キーと新しいコマンド初期キーが重なる場合も既存設定を読み込める',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'dictation-migration-'));
- const settings={...defaults,shortcut:'Super+Shift+J'};delete settings.commandShortcut;delete settings.saveAudio;delete settings.replacements;
+ const settings={...defaults,shortcut:defaults.commandShortcut};delete settings.commandShortcut;delete settings.saveAudio;delete settings.replacements;
  await fs.writeFile(path.join(dir,'app-data.json'),JSON.stringify({settings,history:[]}));
- const store=new Store(dir);await store.load();assert.equal(store.data.settings.shortcut,'Super+Shift+J');assert.equal(store.data.settings.commandShortcut,'Super+Shift+K');assert.equal(store.data.settings.saveAudio,true);
+ const store=new Store(dir);await store.load();assert.equal(store.data.settings.shortcut,defaults.commandShortcut);assert.equal(store.data.settings.commandShortcut,'Super+Shift+K');assert.equal(store.data.settings.saveAudio,true);
 });
 
 test('continuation and preload migrate and retain opt-out',async()=>{const dir=await fs.mkdtemp(path.join(os.tmpdir(),'okosy-assist-'));const settings={...defaults};delete settings.continuationAssist;delete settings.fastStart;await fs.writeFile(path.join(dir,'app-data.json'),JSON.stringify({settings,history:[]}));const store=new Store(dir);await store.load();assert.equal(store.data.settings.continuationAssist,true);assert.equal(store.data.settings.fastStart,true);await store.write({...store.data,settings:{...store.data.settings,continuationAssist:false,fastStart:false}});const reopened=new Store(dir);await reopened.load();assert.equal(reopened.data.settings.continuationAssist,false);assert.equal(reopened.data.settings.fastStart,false);});

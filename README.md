@@ -10,12 +10,11 @@
 
 ![Gourdyの録音画面。マイクボタン、音量バー、設定ボタン](docs/public/assets/transcription.png)
 
-[![Version](https://img.shields.io/badge/version-0.7.5-262626)](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078D4)](docs/public/getting-started.md)
 [![License](https://img.shields.io/badge/app_license-MIT-4b7152)](LICENSE)
 [![Free](https://img.shields.io/badge/有料機能-なし-262626)](#できること)
 
-[ダウンロード](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5) / [使い方](docs/public/getting-started.md) / [開発ガイド](docs/public/development.md)
+[ダウンロード](https://github.com/aToy0m0/gourdy/releases) / [使い方](docs/public/getting-started.md) / [開発ガイド](docs/public/development.md)
 
 </div>
 
@@ -28,23 +27,15 @@ Gourdy（ごーでぃ）は、話している途中から入力欄へ文字を�
 > 誤認識や入力先の誤判定が起こることがあります。重要な文章は送信前に確認してください。
 > 現時点で機密情報を扱う用途には推奨しません。[セキュリティと保存データの扱い](docs/public/security.md)を確認してください。
 
-## 0.7.5の変更
-
-AI接続の選択をマイク・ファイル文字起こし・録音の再認識・MCPで共通化しました。BYOK選択時はファイルの音声もAPIへ送信し、ローカルモデルは不要です。
-
-## 0.7.4までの修正
-
-ダブルタップの判定を400msに調整し、連続操作時の表示切替の取りこぼしを修正しました。お知らせ・吹き出しを閉じた後の格納モーションが重複して始まらないようにし、縮小した最後のフレームを描画してから格納します。トレイ格納時はタスクバー表示も解除し、再表示時に設定どおり戻します。
-
 ## ダウンロード
 
-[バージョン0.7.5のリリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)でZIP版とインストーラー版を配布しています。
-0.7.5の配布物には実行環境を含め、モデルは同梱しません。設定の「AI接続」でBYOKを設定するか、ローカルモデルを明示的にダウンロードします。PythonやNode.jsの追加インストールは不要です。
+[リリースページ](https://github.com/aToy0m0/gourdy/releases)でZIP版とインストーラー版を配布しています。
+配布物には実行環境を含め、モデルは同梱しません。設定の「AI接続」でBYOKを設定するか、ローカルモデルを明示的にダウンロードします。PythonやNode.jsの追加インストールは不要です。
 
 | 配布形式 | ファイル | 起動方法 |
 | --- | --- | --- |
-| インストーラー版 | [gourdy-0.7.5-windows-x64-setup.exe](https://github.com/aToy0m0/gourdy/releases/download/v0.7.5/gourdy-0.7.5-windows-x64-setup.exe) | インストール後、スタートメニューの「Gourdy」から起動 |
-| ZIP版 | [gourdy-0.7.5-windows-x64.zip](https://github.com/aToy0m0/gourdy/releases/download/v0.7.5/gourdy-0.7.5-windows-x64.zip) | 全体を展開し、同梱の `Gourdy.exe` を起動 |
+| インストーラー版 | リリース添付の `*-setup.exe` | インストール後、スタートメニューの「Gourdy」から起動 |
+| ZIP版 | リリース添付の `*-windows-x64.zip` | 全体を展開し、同梱の `Gourdy.exe` を起動 |
 
 対象はWindows x64です。
 **Microsoft Visual C++ v14 x64ランタイムが必要です。**
@@ -68,7 +59,8 @@ AI接続の選択をマイク・ファイル文字起こし・録音の再認識
 録音画面のマイクボタンでも開始と停止ができます。
 
 入力先からフォーカスが外れると自動入力が止まることがありますが、録音と文字起こしは続きます。
-吹き出しに残った文章は、録音と補正の終了後にコピーするか、入力先を選んで「入力」から送れます。
+吹き出しに残った文章は、録音と補正の終了後にコピーするか、入力先を選んで「入力」から送れます。範囲を選択すると、その部分だけをコピー・入力できます。
+ショートカットのダブルタップで録音画面を表示・格納できます。
 詳しい操作は[導入と使い方](docs/public/getting-started.md)を参照してください。
 
 ## できること
@@ -92,18 +84,18 @@ MCP接続は初期状態で同じPCから利用できるよう有効になって
 
 - 認識精度と処理速度は、音声とPCの性能に左右されます。補正にも誤りが残ります。
 - すべてのアプリへのリアルタイム入力は保証していません。最新版の全アプリ通し試験は未完了です。
-- 辞書を使う補正にも誤変換があります。100本の合成音声比較では全文一致が55→57件、文字誤り率が11.58%→12.74%となり、全体的な精度改善は確認できていません。
-- BYOKは両社の実APIで短い合成音声を検証しました。実マイクから外部入力欄までの通し試験、長時間利用、実課金額の計測は未完了です。
+- 辞書は文脈に応じた補正の判断材料です。必ず指定表記へ置換するものではありません。
+- BYOKは試験機能です。APIの利用可否・料金・処理時間は提供元と音声によって異なります。
 - 会議の話者分離には対応していません。ファイルの再生プレビューは区間単位です。
-- ローカル補正を含む試験では約1.65GBのメモリを使用し、停止後の補正に約20秒かかった例があります。1.5GB以下の使用量や即時の補正完了は保証していません。BYOK録音中のピーク使用量は未計測です。
-- クリーンなWindows仮想マシンでの導入試験は未実施です。検証条件は[リリースノート](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)に記載しています。
+- ローカル補正は待ち時間とメモリ使用量が増える場合があります。1GB以下の使用量や即時の補正完了は保証していません。
+- クリーンなWindows仮想マシンでの導入試験は未実施です。検証条件は[リリースノート](https://github.com/aToy0m0/gourdy/releases)に記載しています。
 
 ## 開発と技術構成
 
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
 [![CSharp](https://img.shields.io/badge/C%23-.NET_Framework-512BD4)](https://learn.microsoft.com/dotnet/framework/)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Moonshine](https://img.shields.io/badge/ASR-Moonshine_Streaming-262626)](https://github.com/moonshine-ai/moonshine)
 [![Qwen](https://img.shields.io/badge/LLM-Qwen3.5_0.8B-262626)](https://huggingface.co/Qwen/Qwen3.5-0.8B)
 [![GiNZA](https://img.shields.io/badge/NLP-GiNZA_%2F_Sudachi-262626)](https://github.com/megagonlabs/ginza)

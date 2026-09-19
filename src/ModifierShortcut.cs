@@ -20,6 +20,14 @@ class ModifierTap {
   bool fire=held&&candidate;held=false;candidate=false;return fire;
  }
 }
+class ModifierHold {
+ readonly int target;bool held;
+ public ModifierHold(int target){this.target=target;}
+ public bool Key(int key,bool down,bool otherHeld){
+  if(key!=target)return false;
+  bool fire=down&&!held&&!otherHeld;held=down;return fire;
+ }
+}
 static class ModifierShortcut {
  delegate IntPtr Hook(int code,IntPtr msg,IntPtr data);
  [DllImport("user32.dll",SetLastError=true)]static extern IntPtr SetWindowsHookEx(int id,Hook callback,IntPtr module,uint thread);
@@ -29,19 +37,20 @@ static class ModifierShortcut {
  [DllImport("user32.dll")]static extern short GetAsyncKeyState(int key);
  [DllImport("user32.dll")]static extern uint MapVirtualKey(uint key,uint mode);
  static int[] chordKeys;
- static Hook keyboard=OnKey,mouse=OnMouse;static IntPtr kh,mh;static int target;static ModifierTap tap;
+ static Hook keyboard=OnKey,mouse=OnMouse;static IntPtr kh,mh;static int target;static ModifierTap tap;static ModifierHold hold;
  static IntPtr OnKey(int code,IntPtr msg,IntPtr data){
   if(code>=0&&(Marshal.ReadInt32(data,8)&0x10)==0){
    int key=Marshal.ReadInt32(data),m=msg.ToInt32();bool down=m==0x100||m==0x104;
    bool otherHeld=false;
    if(key==target&&down)foreach(int k in chordKeys)if(k!=target&&(GetAsyncKeyState(k)&0x8000)!=0){otherHeld=true;break;}
-   if(tap.Key(key,down,otherHeld))Console.WriteLine("tap");
+   if(hold!=null){if(hold.Key(key,down,otherHeld))Console.WriteLine("press");}
+   else if(tap.Key(key,down,otherHeld))Console.WriteLine("tap");
   }
   return CallNextHookEx(kh,code,msg,data);
  }
  static IntPtr OnMouse(int code,IntPtr msg,IntPtr data){int m=msg.ToInt32();if(code>=0&&(m==0x201||m==0x204||m==0x207||m==0x20B||m==0x20A||m==0x20E))tap.Cancel();return CallNextHookEx(mh,code,msg,data);}
  [STAThread]static int Main(string[] args){
-  try{target=int.Parse(args[0]);if(target<162||target>165)throw new Exception("Invalid modifier");tap=new ModifierTap(target);
+  try{target=int.Parse(args[0]);if(target<162||target>165)throw new Exception("Invalid modifier");tap=new ModifierTap(target);if(args.Length>1&&args[1]=="hold")hold=new ModifierHold(target);
    var keys=new List<int>();for(int k=1;k<256;k++)if(ModifierTap.IsChordKey(k,MapVirtualKey((uint)k,0)))keys.Add(k);chordKeys=keys.ToArray();
    kh=SetWindowsHookEx(13,keyboard,GetModuleHandle(null),0);mh=SetWindowsHookEx(14,mouse,GetModuleHandle(null),0);
    if(kh==IntPtr.Zero||mh==IntPtr.Zero)throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());

@@ -23,7 +23,7 @@ for(const id of ['shortcut','command-shortcut']){
   if(!key||!e.ctrlKey&&!e.altKey&&!e.metaKey){report(new Error('Ctrl・Alt・Winを含む組み合わせ、または左右Ctrl・Alt単独を指定してください。'));return;}
   assign([e.ctrlKey&&'CommandOrControl',e.altKey&&'Alt',e.shiftKey&&'Shift',e.metaKey&&'Super',key].filter(Boolean).join('+'));
  };
- field.onkeyup=e=>{e.preventDefault();if(single===e.code){if(id==='shortcut')assign(single);else report(new Error('押して話すコマンドは別のキーと組み合わせてください。'));}single=null;};
+ field.onkeyup=e=>{e.preventDefault();if(single===e.code){assign(single);}single=null;};
  field.addEventListener('blur',()=>{single=null});
 }
 
@@ -58,3 +58,13 @@ $('import-file').onclick=()=>importTerms(true).catch(report);
 $('ime-auto-import').onchange=async()=>{try{await persist({imeAutoImport:$('ime-auto-import').checked});if(data.settings.imeAutoImport)await importTerms();}catch(e){$('ime-auto-import').checked=data.settings.imeAutoImport;report(e);}};
 
 $('export-ime').onclick=async()=>{if(!await saveCurrent(true))return;try{const result=await api.exportIme();if(!result.canceled){$('status').classList.remove('error');$('status').textContent=`辞書を${result.count}件書き出しました。`;}}catch(e){report(e)}};
+
+async function showExclusions(){
+ if(!await saveCurrent(true))return;
+ $('dictionary-exclusions').hidden=false;$('excluded-status').textContent='確認中…';
+ try{const {rows,warning}=await api.dictionaryExclusions();$('excluded-terms').replaceChildren();
+ for(const entry of rows){const row=document.createElement('tr');for(const text of [entry.term,entry.reading]){const cell=document.createElement('td');cell.textContent=text;row.append(cell);}const cell=document.createElement('td'),button=document.createElement('button');button.className='paste-button';button.textContent='除外を解除';button.onclick=async()=>{button.disabled=true;try{data=await api.removeDictionaryExclusion(entry.id);await showExclusions();}catch(error){report(error);button.disabled=false;}};cell.append(button);row.append(cell);$('excluded-terms').append(row);}
+ $('excluded-status').textContent=(warning?warning+' ':'')+(rows.length?`${rows.length}件。古い取り込み記録は、元の辞書に単語がない場合、表記を復元できません。`:'除外された項目はありません。');
+ }catch(error){$('excluded-status').textContent=error.message;report(error);}
+}
+$('show-exclusions').onclick=()=>{if($('dictionary-exclusions').hidden)showExclusions().catch(report);else $('dictionary-exclusions').hidden=true;};

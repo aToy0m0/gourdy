@@ -10,7 +10,8 @@ function renderCommandModel(){
  $('fast-start').disabled=cloud||!idle;
  $('progressive-correction').checked=data.settings.progressiveCorrection;
  $('progressive-correction').disabled=!idle;
- $('advanced-correction').checked=data.settings.advancedCorrection;
+ $('advanced-correction').checked=!cloud&&data.settings.advancedCorrection;
+ $('correction-model-info').textContent=cloud?`API選択中は${data.settings.aiProvider==='openai'?'gpt-5.6-luna':'gemini-3.5-flash'}で補正とコマンド操作を行います。この切替はローカル専用です。`:model.state==='ready'?'Qwen3-4Bを取得済み。オンにすると補正に使用します。待ち時間とメモリ使用量が増える場合があります。':'ローカル専用のQwen3-4B（約2.5GB）です。下のボタンから取得すると上位補正を有効にできます。音声コマンドと共用します。';
  $('advanced-correction').disabled=cloud||!idle||(!data.settings.advancedCorrection&&model.state!=='ready');
  $('correction-download').hidden=cloud||active||model.state==='ready';
  $('correction-download').disabled=!idle;

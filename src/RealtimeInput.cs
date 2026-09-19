@@ -68,14 +68,22 @@ static class RealtimeInput {
     if(changed!=null)throw new Exception(changed);
     LiveWriter.CheckWindow(window,pid);
     // DOM replacement briefly leaves no accessible focused element. Observe only.
-    for(int attempt=0;attempt<11;attempt++){
+    for(int attempt=0;attempt<51;attempt++){
       if(changed!=null)throw new Exception(changed);
       LiveWriter.CheckWindow(window,pid);
       try{
         var e=AutomationElement.FocusedElement;
         if(e!=null&&LiveWriter.BelongsToWindow(e,window)){
           if(e.Current.IsPassword)throw new NoInputTargetException("パスワード欄には入力できません。");
-          if(e.Current.ControlType!=ControlType.Window&&e.Current.ControlType!=ControlType.Pane)return e;
+          // A Chromium re-render can temporarily focus RootWebArea or a text child.
+          // Never treat the entire document as the original editor or send keys to it.
+          for(int depth=0;depth<8&&e!=null&&LiveWriter.BelongsToWindow(e,window);depth++){
+            object pattern;bool editable=e.Current.ControlType==ControlType.Edit||e.Current.ControlType==ControlType.Custom;
+            if(e.TryGetCurrentPattern(ValuePattern.Pattern,out pattern))editable=!((ValuePattern)pattern).Current.IsReadOnly;
+            else if(e.TryGetCurrentPattern(TextPattern.Pattern,out pattern))editable=Object.Equals(((TextPattern)pattern).DocumentRange.GetAttributeValue(TextPattern.IsReadOnlyAttribute),false);
+            if(editable)return e;
+            e=TreeWalker.ControlViewWalker.GetParent(e);
+          }
         }
       }catch(ElementNotAvailableException){}
       Thread.Sleep(20);
@@ -125,7 +133,7 @@ static class RealtimeInput {
               left=left.Substring(0,left.Length-r.prior.Length);written=r.prior;
             }
             if(baseline!=null&&baseline.Length>200000)throw new Exception("入力先の文章が検証上限を超えています。");changed=null;active=true;initialized=true;
-            Emit(new {ready=true,verification=baseline==null?"input-monitor":"value-and-input-monitor"});continue;
+            Emit(new {ready=true,editor=editor,verification=baseline==null?"input-monitor":"value-and-input-monitor"});continue;
           }
           if(r.kind!="write"||!initialized||r.text==null||r.text.Length>12000)throw new Exception("入力要求が不正です。");
           var element=Focus(window,pid);attemptEditor=element;string current=Value(element);

@@ -5,7 +5,7 @@ const {shortcutKeys}=require('./voice-commands.cjs');
 const {validateReplacements}=require('./replacements.cjs');
 const defaults = {
   aiProvider: 'none',
-  shortcut: 'ControlRight', commandShortcut: 'Super+Shift+J', commandEnabled: false, advancedCorrection: false, progressiveCorrection: true, saveAudio: true, replacements: [], liveInput: true,
+  shortcut: 'ControlRight', commandShortcut: 'AltRight', commandEnabled: false, advancedCorrection: false, progressiveCorrection: true, saveAudio: true, replacements: [], liveInput: true,
   textBackground: true, noiseThresholdDb: -80, mcpEnabled: true, mcpPort: 55888, microphoneId: '', noiseSuppression: true, continuationAssist: true, fastStart: true,
   accent: '#262626', closeToTray: true, showTaskbar: true, launchAtStartup: false, imeAutoImport: false,
   count: 10, chars: 12000,
@@ -18,7 +18,7 @@ function validate(settings) {
   if(!Number.isInteger(settings.noiseThresholdDb)||settings.noiseThresholdDb< -80||settings.noiseThresholdDb> -20)throw new Error('ノイズ閾値は−80〜−20 dBにしてください。');
   if(typeof settings.mcpEnabled!=='boolean'||!Number.isInteger(settings.mcpPort)||settings.mcpPort<1024||settings.mcpPort>65535)throw new Error('MCPポートは1024〜65535にしてください。');
   if(typeof settings.microphoneId!=='string'||settings.microphoneId.length>512)throw new Error('マイクの設定が不正です。');
-  if(shortcutKeys(settings.commandShortcut).length<2)throw new Error('押して話すコマンドは修飾キーと別のキーを組み合わせてください。');
+  shortcutKeys(settings.commandShortcut);
   if(settings.commandEnabled&&settings.commandShortcut===settings.shortcut)throw new Error('録音とコマンドには別のショートカットを指定してください。');
   validateReplacements(settings.replacements);
   if (!colors.includes(settings.accent) || ['closeToTray','textBackground','liveInput','showTaskbar','launchAtStartup','imeAutoImport','saveAudio','progressiveCorrection','advancedCorrection','commandEnabled','noiseSuppression','continuationAssist','fastStart'].some(k => typeof settings[k] !== 'boolean')) throw new Error('操作設定が不正です。');
@@ -50,6 +50,7 @@ class Store {
       this.data.settings.fastStart ??= true;
       for(const key of ['closeToTray','textBackground','noiseThresholdDb','mcpEnabled','mcpPort'])this.data.settings[key]??=defaults[key];
       if(this.data.imeSeen!==undefined&&(!Array.isArray(this.data.imeSeen)||this.data.imeSeen.length>100000||this.data.imeSeen.some(k=>typeof k!=='string'||! /^[a-f0-9]{64}$/.test(k))))throw new Error('Windows辞書の取り込み記録が不正です。');
+      if(this.data.imeKnown!==undefined&&(this.data.imeKnown===null||typeof this.data.imeKnown!=='object'||Array.isArray(this.data.imeKnown)||Object.entries(this.data.imeKnown).some(([id,row])=>! /^[a-f0-9]{64}$/.test(id)||!row||typeof row.term!=='string'||typeof row.reading!=='string'||row.term.length>80||row.reading.length>120)))throw new Error('辞書の取り込み表記が不正です。');
       this.readingWarnings=[];
       for(const term of this.data.settings.terms){try{term.reading=normalizeReading(term.reading);}catch(error){this.readingWarnings.push(`「${term.term}」: ${error.message}`);}}
       validate(this.data.settings);

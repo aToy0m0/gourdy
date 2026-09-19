@@ -12,7 +12,7 @@ const { randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const { exportDictionary } = require('./dictionary-export.cjs');
 const {parseDictionary,MAX_DICTIONARY_BYTES}=require('./dictionary-import.cjs');
-const {readImeDictionary,mergeIme,importMessage}=require('./ime-dictionary.cjs');
+const {readImeDictionary,mergeIme,importMessage,exclusions,releaseExclusion}=require('./ime-dictionary.cjs');
 const { Store, defaults, validate, trimHistory } = require('./store.cjs');
 const {Recordings}=require('./recordings.cjs');
 const {shortcutKeys}=require('./voice-commands.cjs');
@@ -25,8 +25,8 @@ const {ProgressiveCorrection}=require('./progressive-correction.cjs');
 const { refine } = require('./refine.cjs');
 const { windowTarget } = require('./window-target.cjs');
 const {RealtimeInput}=require('./realtime-input.cjs');
-const {continuation}=require('./continuation.cjs');
-let bubble,bubbleReady,bubbleDismissed=false,remaining=null,continuationBusy=false,warmVoice=null;
+const {continuation,selectedContinuation}=require('./continuation.cjs');
+let bubble,bubbleReady,bubbleDismissed=false,remaining=null,continuationBusy=false,warmVoice=null,miniManuallyHidden=false;
 let infoWindow,infoReady,infoText='',infoOpen=false,infoSize={width:276,height:146};
 app.disableHardwareAcceleration();
 app.setAppUserModelId('jp.localdictation.streaming');
@@ -133,6 +133,7 @@ function positionInfo(){
 async function updateInfo(text,open){
   if(shuttingDown)return;
   infoText=text;
+  if(miniManuallyHidden){infoWindow?.hide();return;}
   if(text&&miniExiting)await showMini();
   if(!text){infoOpen=false;infoWindow?.hide();return;}
   if(open)infoOpen=!infoOpen;
@@ -151,7 +152,7 @@ async function refreshContinuation(){
   const enabled=store.data.settings.continuationAssist;
   const value=remaining&&enabled?{...remaining,phase,ready:phase==='idle',busy:continuationBusy}:null;
   send(mini,'continuation',value);
-  if(!value||bubbleDismissed){bubble?.hide();return;}
+  if(!value||bubbleDismissed||miniManuallyHidden){bubble?.hide();return;}
   if(miniExiting)await showMini();
   if(!bubble||bubble.isDestroyed()){
     bubble=new BrowserWindow({parent:mini,icon:appIcon,width:315,height:174,frame:false,transparent:true,resizable:false,focusable:false,show:false,alwaysOnTop:true,skipTaskbar:true,webPreferences:{preload:path.join(__dirname,'continuation-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
@@ -185,7 +186,7 @@ async function showMini() {
   if(shuttingDown)return;
   await ensureMini();
   if(shuttingDown||mini.isDestroyed())return;
-  miniExiting=false;
+  miniExiting=false;miniManuallyHidden=false;
   const hidden=!mini.isVisible();
   send(mini,'mini-motion',{id:++miniMotionId,direction:hidden?'enter':'restore'});
   if(!hidden){mini.showInactive();mini.moveTop();raiseMiniPanels();await restoreMiniInput();}
@@ -214,10 +215,11 @@ async function startCommand() {
   catch(error){token.error=error.message;report(error);}
   finally{if(commandSession===token)send(mini,'command-release',{error:token.error});}
 }
-function registerCommand(shortcut){return globalShortcut.register(shortcut,()=>startCommand().catch(error=>{commandSession=null;report(error)}));}
+function registerCommand(shortcut){return commandShortcut.register(shortcut);}
 const {RecordingShortcut}=require('./recording-shortcut.cjs');
+const commandShortcut=new RecordingShortcut(globalShortcut,()=>{if(!editor?.isFocused())startCommand().catch(error=>{commandSession=null;report(error)});},report,true);
 const {ShortcutTaps,shouldHideMini}=require('./shortcut-taps.cjs');
-const shortcutTaps=new ShortcutTaps(()=>toggle().catch(report),()=>setMiniPinned().catch(report));
+const shortcutTaps=new ShortcutTaps(()=>toggle().catch(report),()=>setMiniPinned(undefined,true).catch(report));
 const recordingShortcut=new RecordingShortcut(globalShortcut,()=>{if(!editor?.isFocused())shortcutTaps.tap()},report);
 function register(shortcut){shortcutTaps.cancel();return recordingShortcut.register(shortcut);}
 async function saveSettings(patch, preserveHistory=false) {
@@ -236,20 +238,20 @@ async function saveSettings(patch, preserveHistory=false) {
     const newKey=next.shortcut!==previous.shortcut, newStartup=next.launchAtStartup!==previous.launchAtStartup;
     if(newStartup&&!app.isPackaged)throw new Error('自動起動はビルド済みアプリで設定してください。');
     if(newKey&&!await register(next.shortcut))throw new Error('このショートカットは他のアプリで使用中です。');
-    if(registerNewCommand&&!registerCommand(next.commandShortcut)){if(newKey)recordingShortcut.unregister(next.shortcut);throw new Error('コマンドショートカットは他のアプリで使用中です。');}
+    if(registerNewCommand&&!await registerCommand(next.commandShortcut)){if(newKey)recordingShortcut.unregister(next.shortcut);throw new Error('コマンドショートカットは他のアプリで使用中です。');}
     try {
       if(newStartup){app.setLoginItemSettings({openAtLogin:next.launchAtStartup,path:process.execPath,args:['--autostart']});if(app.getLoginItemSettings({path:process.execPath,args:['--autostart']}).openAtLogin!==next.launchAtStartup)throw new Error('Windowsの自動起動設定を確認できません。');}
       if(previous.mcpEnabled!==next.mcpEnabled||previous.mcpPort!==next.mcpPort)await mcpServer.configure(next);
       await store.write({...store.data,settings:next,history:preserveHistory?store.data.history:trimHistory(store.data.history,next)});
     } catch(error) {
       try{await mcpServer.configure(previous);}catch(restoreError){report(restoreError);}
-      if(registerNewCommand)globalShortcut.unregister(next.commandShortcut);
+      if(registerNewCommand)commandShortcut.unregister(next.commandShortcut);
       if(newKey)recordingShortcut.unregister(next.shortcut);
       if(newStartup)app.setLoginItemSettings({openAtLogin:previous.launchAtStartup,path:process.execPath,args:['--autostart']});
       throw error;
     }
     if(newKey)recordingShortcut.unregister(previous.shortcut);
-    if(unregisterOldCommand)globalShortcut.unregister(previous.commandShortcut);
+    if(unregisterOldCommand)commandShortcut.unregister(previous.commandShortcut);
     mini?.setSkipTaskbar(!windowVisible(mini)||!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();if(!next.fastStart||next.aiProvider!=='local')await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
   });
 }
@@ -284,11 +286,11 @@ function writeLive(text) {
   catch(error){active.blocked=error.message;active.continuationDiagnostic={mayHaveWritten:error.mayHaveWritten,confirmedWritten:error.confirmedWritten,previousWritten:active.state.written,previousVerified:active.state.verified};if(typeof error.confirmedWritten==='string')active.state={written:error.confirmedWritten,verified:true};active.continuationCertain=(error.mayHaveWritten===false||typeof error.confirmedWritten==='string')&&(active.state.written===''||active.state.verified===true);report(error);updateContinuation();}}).finally(()=>{active.writing=null;});
 }
 function miniPinned(){return store.data.miniPinned??!process.argv.includes('--autostart');}
-async function setMiniPinned(value){
+async function setMiniPinned(value,explicit=false){
   await serialize(async()=>{
-    const next=value??!miniPinned();
+    const next=value??!(windowVisible(mini)&&!miniExiting);
     await store.write({...store.data,miniPinned:next});
-    if(next)await showMini();else maybeHideMini();
+    if(next){await showMini();await refreshContinuation();}else if(explicit){miniManuallyHidden=true;bubble?.hide();infoWindow?.hide();hideMiniAnimated();}else maybeHideMini();
   });
 }
 function maybeHideMini(){
@@ -499,18 +501,28 @@ if(!app.requestSingleInstanceLock())app.quit();else {
       if(!Array.isArray(rects)||!rects.length||rects.length>3000||rects.some(r=>!r||!['x','y','width','height'].every(k=>Number.isInteger(r[k]))||r.x<0||r.y<0||r.width<1||r.height<1||r.x+r.width>size.width||r.y+r.height>size.height))throw new Error('録音ウィンドウの形状が不正です。');
       mini.setShape(rects);
     });
-    ipcMain.handle('continuation-hide',event=>{trusted(event,'bubble');bubbleDismissed=true;bubble.hide();maybeHideMini();});
-    ipcMain.handle('continuation-copy',event=>{
-      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('録音・補正が終わってからコピーしてください。');clipboard.writeText(remaining.text);
+    ipcMain.handle('dictionary-exclusions',async event=>{
+      trusted(event,'settings');
+      let entries=[],warning='';try{entries=await readImeDictionary();}catch(error){warning='Windows辞書を確認できませんでした。保存済みの記録を表示します。'+error.message;}return {rows:exclusions(store.data,entries),warning};
     });
-    ipcMain.handle('continuation-insert',async event=>{
-      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.safe||!remaining.text||continuationBusy)throw new Error('入力できる続きがありません。');
+    ipcMain.handle('dictionary-exclusion-remove',async(event,id)=>{
+      trusted(event,'settings');await serialize(async()=>{if(phase!=='idle')throw new Error('録音・補正が終わってから操作してください。');await store.write(releaseExclusion(store.data,id));});broadcast();return snapshot();
+    });
+    ipcMain.handle('continuation-hide',event=>{trusted(event,'bubble');bubbleDismissed=true;bubble.hide();maybeHideMini();});
+    ipcMain.handle('continuation-copy',(event,selection)=>{
+      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('録音・補正が終わってからコピーしてください。');clipboard.writeText(selectedContinuation(remaining,selection).text);
+    });
+    ipcMain.handle('continuation-insert',async(event,selection)=>{
+      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('入力できる続きがありません。');
+      const content=selectedContinuation(remaining,selection),repair=!content.selected&&remaining.safe&&remaining.prior;
       continuationBusy=true;await refreshContinuation();let writer,writing=false;
       try{
         const target=await windowTarget('capture');if(!target)throw new Error('入力したい欄にカーソルを置いてください。');
-        writer=new RealtimeInput(target);await writer.request({kind:'start',shortcut:shortcutKeys(store.data.settings.shortcut),prior:remaining.prior});
-        writing=true;const result=await writer.request({kind:'write',text:remaining.prior?remaining.full:remaining.text});
-        remaining={...remaining,safe:false,inserted:true,label:'入力済み'};lastNotice='';send(mini,'notice','');return {verified:result.verified};
+        writer=new RealtimeInput(target);const started=await writer.request({kind:'start',shortcut:shortcutKeys(store.data.settings.shortcut),prior:repair?remaining.prior:undefined});
+        writing=true;let result;
+        if(repair)result=await writer.request({kind:'write',text:remaining.full});
+        else {await writer.close();writer=null;clipboard.writeText(content.text);await windowTarget('paste-current',target,{editor:started.editor});result={verified:false};}
+        remaining={...remaining,safe:false,inserted:true,label:content.selected?'選択範囲を入力済み':'入力済み'};lastNotice='';send(mini,'notice','');return {verified:result.verified};
       }catch(error){if(writing&&error.mayHaveWritten!==false){remaining.safe=false;remaining.label='一部入力された可能性があります。入力先を確認してください。';}throw error;}
       finally{await writer?.close();continuationBusy=false;await refreshContinuation();}
     });
@@ -567,14 +579,14 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     handlersRegistered();
     await ensureMini();if(miniPinned()){mini.showInactive();mini.moveTop();raiseMiniPanels();}if(needsSetup()){mini.showInactive();await showSetupNotice();}prepareVoice();
     if(store.data.settings.imeAutoImport){try{const result=await importIme(true);if(result.importStats.overflow||result.importStats.skipped)report(new Error(importMessage(result.importStats)));}catch(error){report(error);}}
-    if(store.data.settings.commandEnabled&&!registerCommand(store.data.settings.commandShortcut))report(new Error('コマンドショートカットが他のアプリで使われています。設定で変更してください。'));
+    if(store.data.settings.commandEnabled&&!await registerCommand(store.data.settings.commandShortcut))report(new Error('コマンドショートカットが他のアプリで使われています。設定で変更してください。'));
     if(!await register(store.data.settings.shortcut))report(new Error('ショートカットが他のアプリで使われています。設定で変更してください。'));
   }).catch(error=>{dialog.showErrorBox('起動できません',error.stack||error.message);app.quit();});
 }
 app.on('window-all-closed',()=>{});
 app.on('before-quit',event=>{
   shortcutTaps.cancel();
-  if(shuttingDown)return;event.preventDefault();shuttingDown=true;recordingShortcut.close();globalShortcut.unregisterAll();controller?.abort();mediaController?.abort();
+  if(shuttingDown)return;event.preventDefault();shuttingDown=true;recordingShortcut.close();commandShortcut.close();globalShortcut.unregisterAll();controller?.abort();mediaController?.abort();
   if(downloadRequest)downloadRequest.cancelled=true;commandModel?.cancel();localModels?.cancel();
   inputController?.abort();
   if(live){live.blocked='終了中';live.worker.fail(new Error('終了中'));}

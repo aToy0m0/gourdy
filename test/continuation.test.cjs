@@ -5,3 +5,5 @@ test('uncertain partial send never permits automatic continuation',()=>{assert.e
 test('corrected suffix and empty suffix',()=>{assert.equal(continuation('前続き','前',true,'前続き。').text,'続き。');assert.equal(continuation('前','前',true).text,'');});
 
 test('revised boundary requires verified prior text for replacement',()=>{const r=continuation('設定は変更しない','設定で',true);assert.equal(r.replaceCount,1);assert.equal(r.text,'は変更しない');assert.equal(r.prior,'設定で');assert.equal(r.full,'設定は変更しない');});
+
+test('manual selection is exact and rejects stale or invalid ranges',()=>{const {selectedContinuation}=require('../src/continuation.cjs');const value={text:'前半。\n選択部分。後半',safe:false};assert.equal(selectedContinuation(value,null).text,value.text);assert.equal(selectedContinuation(value,{source:value.text,start:4,end:9}).text,'選択部分。');for(const selection of [{source:'古い文章',start:0,end:1},{source:value.text,start:-1,end:2},{source:value.text,start:2,end:99}])assert.throws(()=>selectedContinuation(value,selection));});

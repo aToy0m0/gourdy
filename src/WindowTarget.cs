@@ -101,6 +101,14 @@ class WindowTarget {
       if(args.Length==2 && args[0]=="pick-paste") result=PickPaste(UInt32.Parse(args[1]));
       else if (args.Length == 3 && args[0] == "live-start") result = LiveWriter.Start(new IntPtr(Int64.Parse(args[1])), UInt32.Parse(args[2]));
       else if (args.Length == 3 && args[0] == "live-write") result = LiveWriter.Write(new IntPtr(Int64.Parse(args[1])), UInt32.Parse(args[2]), new JavaScriptSerializer().Deserialize<LiveRequest>(Console.In.ReadToEnd()));
+      else if(args.Length==3&&args[0]=="paste-current"){
+        var window=new IntPtr(Int64.Parse(args[1]));uint pid=UInt32.Parse(args[2]);
+        var request=new JavaScriptSerializer().Deserialize<Dictionary<string,string>>(Console.In.ReadToEnd());
+        LiveWriter.WaitReleased();LiveWriter.CheckWindow(window,pid);
+        var element=System.Windows.Automation.AutomationElement.FocusedElement;
+        if(element==null||!LiveWriter.BelongsToWindow(element,window)||element.Current.IsPassword||String.Join(",",Array.ConvertAll(element.GetRuntimeId(),x=>x.ToString()))!=request["editor"])throw new Exception("入力先が変わったため貼り付けを中止しました。");
+        SendKeys.SendWait("^v");result=new {ok=true};
+      }
       else if (args.Length == 2 && args[0] == "capture") result = Describe(GetForegroundWindow(), UInt32.Parse(args[1]));
       else if (args.Length == 2 && args[0] == "list") {
         var list = new List<object>(); var excluded = UInt32.Parse(args[1]);

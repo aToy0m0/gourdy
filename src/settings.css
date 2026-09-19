@@ -38,3 +38,4 @@ nav button{flex:none;width:100%;text-align:left;padding:0 16px}.indicator{top:0;
 #ai>small{display:block;line-height:1.6;margin:6px 0 12px;overflow-wrap:anywhere}#ai>label{margin-top:22px}#ai>label:first-child{margin-top:0}
 
 #local-model-options{padding:12px 0;border-bottom:1px solid #eee}#local-model-options small{display:block;margin:8px 0;line-height:1.6}
+#dictionary-exclusions{margin:14px 0;max-height:320px;overflow:auto;scrollbar-gutter:stable;padding-right:8px}#dictionary-exclusions .term-table th:last-child,#dictionary-exclusions .term-table td:last-child{width:104px}#dictionary-exclusions button{white-space:nowrap}#dictionary-exclusions td{overflow-wrap:anywhere}
