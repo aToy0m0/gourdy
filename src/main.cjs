@@ -101,11 +101,11 @@ async function ensureMini() {
     const area=screen.getPrimaryDisplay().workArea,{width,height}=mini.getBounds();
     mini.setPosition(Math.max(area.x,area.x+area.width-width-24),Math.max(area.y,area.y+area.height-height-24));
   }
-  mini.setSkipTaskbar(!store.data.settings.showTaskbar);
-  mini.on('show',()=>restoreMiniInput().catch(report));
+  mini.setSkipTaskbar(true);
+  mini.on('show',()=>{mini.setSkipTaskbar(!store.data.settings.showTaskbar);restoreMiniInput().catch(report);});
   mini.on('move',()=>positionBubble());
   mini.on('resize',()=>positionInfo());
-  mini.on('hide',()=>{infoOpen=false;infoWindow?.hide();});
+  mini.on('hide',()=>{mini.setSkipTaskbar(true);infoOpen=false;infoWindow?.hide();});
   mini.on('close',event=>{if(!shuttingDown){event.preventDefault();closeMini().catch(report);}});
   await secureWindow(mini,'index.html');
 }
@@ -243,7 +243,7 @@ async function saveSettings(patch, preserveHistory=false) {
     }
     if(newKey)recordingShortcut.unregister(previous.shortcut);
     if(unregisterOldCommand)globalShortcut.unregister(previous.commandShortcut);
-    mini?.setSkipTaskbar(!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();if(!next.fastStart||next.aiProvider!=='local')await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
+    mini?.setSkipTaskbar(!windowVisible(mini)||!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();if(!next.fastStart||next.aiProvider!=='local')await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
   });
 }
 async function prepareMeeting(file){
@@ -343,7 +343,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('show-setup',event=>{trusted(event,'mini');return showSetupNotice();});
     ipcMain.handle('mini-settings',event=>{trusted(event,'mini');return {...store.data.settings,inputReady:!needsSetup()};});
     ipcMain.handle('mini-motion-ready',(event,id)=>{trusted(event,'mini');if(id===miniMotionId){mini.showInactive();mini.moveTop();raiseMiniPanels();if(infoOpen&&infoText)updateInfo(infoText,false).catch(report);}});
-    ipcMain.handle('mini-motion-done',async(event,id,direction)=>{trusted(event,'mini');if(id!==miniMotionId)return;if(direction==='exit')mini.hide();else await restoreMiniInput();});
+    ipcMain.handle('mini-motion-done',async(event,id,direction)=>{trusted(event,'mini');if(id!==miniMotionId)return;if(direction==='exit'){mini.setSkipTaskbar(true);mini.hide();}else await restoreMiniInput();});
     ipcMain.handle('mini-idle-hide',event=>{trusted(event,'mini');maybeHideMini();});
     ipcMain.handle('mini-info',(event,text,open)=>{trusted(event,'mini');if(typeof text!=='string'||text.length>16000||typeof open!=='boolean')throw new Error('情報の形式が不正です。');return updateInfo(text,open);});
     ipcMain.handle('info-hide',event=>{trusted(event,'info');infoOpen=false;infoWindow.hide();const dismissed=infoText;infoText='';send(mini,'info-dismissed',dismissed);maybeHideMini();});
