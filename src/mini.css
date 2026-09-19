@@ -1,6 +1,6 @@
 :root{font:11px 'Yu Gothic UI',Meiryo,sans-serif;color:#222;--accent:#262626;--icon-active-background:#dedede}
 *{box-sizing:border-box}body{margin:0;background:transparent;overflow:hidden;user-select:none}main{position:relative;width:280px;height:348px;transform:scale(var(--mini-scale,.75));transform-origin:top left}
-#shell{position:absolute;left:16px;top:76px;width:240px;height:230px;fill:#fff;filter:drop-shadow(0 2px 4px #00000012);pointer-events:none}
+#shell{position:absolute;left:16px;top:76px;width:240px;height:230px;fill:#fff;pointer-events:none}
 #drag-handle{position:absolute;left:20px;top:76px;width:180px;height:180px;border-radius:50%;cursor:move;touch-action:none}
 button{-webkit-app-region:no-drag;cursor:pointer;border:0;color:#222;display:grid;place-items:center;padding:0;background:none}
 button:focus-visible{outline:2px solid #777;outline-offset:-4px}button:disabled{opacity:.45;cursor:wait}
@@ -9,14 +9,14 @@ button:focus-visible{outline:2px solid #777;outline-offset:-4px}button:disabled{
 #settings{left:173px;top:222px;width:62px;height:62px}#settings svg{width:30px;height:30px}
 #wave{position:absolute;left:44px;top:10px;width:136px;height:52px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
 #wave i{width:5px;height:3px;border-radius:3px;background:#b8b8b8;transition:height 80ms linear,background-color 120ms}
-#hide{position:absolute;left:187px;top:74px;width:28px;height:28px;border-radius:50%;background:#fff;color:#555;font:21px Arial;opacity:0;transition:opacity 120ms;box-shadow:0 2px 5px #00000012}
+#hide{position:absolute;left:187px;top:74px;width:28px;height:28px;border-radius:50%;background:#fff;color:#555;font:21px Arial;opacity:0;transition:opacity 120ms}
 body:hover #hide,#hide:focus-visible{opacity:1}
 [hidden]{display:none!important}#continuation-actions{position:absolute;left:20px;top:318px;display:flex;align-items:center;gap:8px;height:26px;padding:0 8px;border-radius:13px;background:#fff}
 #copy-continuation{width:26px;height:26px}#copy-continuation svg{width:15px;height:15px}#insert-continuation{height:26px;font:inherit}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 #resize-handle{position:absolute;left:199px;top:246px;width:74px;height:80px;background:none;cursor:nwse-resize;touch-action:none;opacity:0;pointer-events:none;transition:opacity 120ms}
-#resize-handle svg{width:100%;height:100%;overflow:visible;fill:#fff;filter:drop-shadow(0 1px 2px #00000024);pointer-events:none}
+#resize-handle svg{width:100%;height:100%;overflow:visible;fill:#fff;pointer-events:none}
 #resize-handle path{pointer-events:visiblePainted}
 #resize-handle .resize-arrow{fill:#333;stroke:#333;stroke-width:0.6;stroke-linejoin:round;pointer-events:none}
 #shell{pointer-events:visiblePainted;cursor:move;touch-action:none}
@@ -24,7 +24,7 @@ body:hover #resize-handle,#resize-handle:focus-visible,#resize-handle[data-dragg
 #resize-handle:focus-visible{outline:none}#resize-handle:focus-visible path{stroke:#777;stroke-width:1.5}
 .icon-button{background:var(--icon-background,#e4e4e4);color:#222}#wave i{background:var(--wave-background,#777)}body.recording #wave i{background:var(--wave-active-background,#444)}
 
-#shell{filter:drop-shadow(0 2px 4px #00000020)}
+#shell,#resize-handle svg,#hide{filter:drop-shadow(0 2px 4px #00000020)}
 #shell{transform-origin:94px 90px}
 body[data-motion] #hide,body[data-motion] #resize-handle,body[data-motion] #shortcut-tip{visibility:hidden}
 body[data-motion] #drag-handle,body[data-motion] #shell{pointer-events:none}

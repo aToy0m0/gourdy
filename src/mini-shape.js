@@ -11,10 +11,11 @@ async function updateMiniShape(){
   }
   const resize=document.querySelector('#resize-handle'),resizeBounds=resize.getBoundingClientRect();
   context.save();context.translate(resizeBounds.x,resizeBounds.y);context.scale(width/280,width/280);
-  context.fill(new Path2D(resize.querySelector('path').getAttribute('d')));context.restore();
+  const resizePath=new Path2D(resize.querySelector('path').getAttribute('d'));
+  context.fill(resizePath);context.lineWidth=12;context.stroke(resizePath);context.restore();
   for(const selector of ['#wave','#info','#hide','#shortcut-tip']){
     const element=document.querySelector(selector);if(element.hidden)continue;
-    const r=element.getBoundingClientRect();context.fillRect(r.x,r.y,r.width,r.height);
+    const r=element.getBoundingClientRect(),padding=selector==='#hide'?6:0;context.fillRect(r.x-padding,r.y-padding,r.width+padding*2,r.height+padding*2);
   }
   if(document.body.dataset.motion)context.fillRect(0,0,width,height);
   const pixels=context.getImageData(0,0,width,height).data,rects=[];
