@@ -4,3 +4,5 @@ test('empty native error is rejected, never mistaken for successful input',async
 test('aborting pending native input rejects and terminates helper',async()=>{const {input}=setup();const pending=input.request({kind:'write',text:'あ'});input.abort();await assert.rejects(pending,/中断/);await input.closed;});
 
 test('partial-send confirmation metadata survives the native protocol',async()=>{const {input,child}=setup();const pending=input.request({kind:'write',text:'文章'});child.stdout.write(JSON.stringify({error:'フォーカス移動',mayHaveWritten:true,confirmedWritten:'文'})+'\n');await assert.rejects(pending,e=>e.mayHaveWritten===true&&e.confirmedWritten==='文');await input.close();});
+
+test('sent-text ledger mode is observable and is not reported as verified',async()=>{const {input,child}=setup();const pending=input.request({kind:'write',text:'文章'});child.stdout.write(JSON.stringify({written:'文章',verified:false,verification:'input-monitor',verificationReason:'sent-text-ledger'})+'\n');const result=await pending;assert.equal(result.verified,false);assert.equal(input.verification,'input-monitor');assert.equal(input.verificationReason,'sent-text-ledger');await input.close();});

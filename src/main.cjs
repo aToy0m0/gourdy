@@ -1,3 +1,5 @@
+const {miniBounds:normalizeMiniBounds}=require('./mini-bounds.cjs');
+const {miniShapeRects}=require('./mini-shape-rects.cjs');
 const { app, screen, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, ipcMain, dialog, clipboard, session, safeStorage } = require('electron');
 const {CloudKeys}=require('./cloud-keys.cjs');
 const {CloudSpeech}=require('./cloud-speech.cjs');
@@ -95,25 +97,24 @@ function secureWindow(window, file) {
 }
 let miniGesture=null;
 function visibleMiniBounds(bounds){
-  const area=screen.getDisplayMatching(bounds).workArea;
-  return {...bounds,x:Math.max(area.x,Math.min(bounds.x,area.x+area.width-bounds.width)),y:Math.max(area.y,Math.min(bounds.y,area.y+area.height-bounds.height))};
+  const primary=screen.getPrimaryDisplay().workArea;
+  const safe=normalizeMiniBounds(bounds,primary);
+  const location=bounds&&Number.isInteger(bounds.x)&&Number.isInteger(bounds.y)&&Math.abs(bounds.x)<2147483647&&Math.abs(bounds.y)<2147483647?{...safe,x:bounds.x,y:bounds.y}:safe;
+  return normalizeMiniBounds(location,screen.getDisplayMatching(location).workArea);
 }
 async function ensureMini() {
   await handlersReady;
   if(mini && !mini.isDestroyed())return;
   const saved=store.data.miniBounds;
-  if(saved&&(!['x','y','width','height'].every(k=>Number.isInteger(saved[k]))||saved.width<140||saved.width>420||Math.abs(saved.height-Math.round(saved.width*348/280))>1))throw new Error('保存した録音画面のサイズが不正です。');
-  mini=new BrowserWindow({icon:appIcon,width:168,height:209,useContentSize:true,resizable:false,frame:false,transparent:true,hasShadow:false,show:false,focusable:false,alwaysOnTop:true,backgroundColor:'#00000000',skipTaskbar:true,
+  const restored=visibleMiniBounds(saved);
+  if(saved&&JSON.stringify(saved)!==JSON.stringify(restored)){await serialize(()=>store.write({...store.data,miniBounds:restored}));lastNotice='録音画面の位置・サイズを画面内に調整しました。';console.warn('Recovered mini window bounds',restored);}
+  mini=new BrowserWindow({icon:appIcon,width:168,height:209,useContentSize:true,resizable:false,maximizable:false,fullscreenable:false,frame:false,transparent:true,hasShadow:false,show:false,focusable:false,alwaysOnTop:true,backgroundColor:'#00000000',skipTaskbar:true,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
-  if(saved)mini.setBounds(visibleMiniBounds(saved));
-  else {
-    const area=screen.getPrimaryDisplay().workArea,{width,height}=mini.getBounds();
-    mini.setPosition(Math.max(area.x,area.x+area.width-width-24),Math.max(area.y,area.y+area.height-height-24));
-  }
+  mini.setBounds(restored);
   mini.setSkipTaskbar(true);
   mini.on('show',()=>{mini.setSkipTaskbar(store.data.settings.closeToTray);restoreMiniInput().catch(report);});
   mini.on('move',()=>positionBubble());
-  mini.on('resize',()=>positionBubble());
+  mini.on('resize',()=>{if(!mini||mini.isDestroyed())return;const actual=mini.getBounds(),bounded=visibleMiniBounds(actual);if(actual.width!==bounded.width||actual.height!==bounded.height)mini.setBounds(bounded);positionBubble();});
   mini.on('hide',()=>{mini.setSkipTaskbar(true);infoOpen=false;infoWindow?.hide();});
   mini.on('close',event=>{if(!shuttingDown){event.preventDefault();closeMini().catch(report);}});
   await secureWindow(mini,'index.html');
@@ -160,6 +161,7 @@ async function refreshContinuation(){
   if(miniExiting)await showMini();
   if(!bubble||bubble.isDestroyed()){
     bubble=new BrowserWindow({parent:mini,icon:appIcon,width:315,height:174,frame:false,transparent:true,resizable:false,focusable:false,show:false,alwaysOnTop:true,skipTaskbar:true,webPreferences:{preload:path.join(__dirname,'continuation-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    bubble.on('blur',()=>{if(bubble&&!bubble.isDestroyed())bubble.setFocusable(false);});
     bubble.on('closed',()=>{bubble=null;});
     bubble.setMenu(null);bubble.webContents.setWindowOpenHandler(()=>({action:'deny'}));bubble.webContents.on('will-navigate',e=>e.preventDefault());
     bubbleReady=bubble.loadFile(path.join(__dirname,'continuation.html'));
@@ -480,14 +482,13 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('mini-layout',(event,height)=>{
       trusted(event,'mini');
       if(!Number.isInteger(height)||height<100||height>1000)throw new Error('表示領域の高さが不正です。');
-      const bounds=mini.getBounds();if(bounds.height===height)return;
-      mini.setBounds(visibleMiniBounds({...bounds,height}));positionBubble();
+      const bounds=mini.getBounds(),bounded=visibleMiniBounds(bounds);if(bounds.height!==bounded.height||bounds.width!==bounded.width)mini.setBounds(bounded);positionBubble();
     });
     ipcMain.handle('mini-gesture',async(event,action,kind)=>{
       trusted(event,'mini');
       if(action==='start'){
         if(!['move','resize'].includes(kind))throw new Error('画面操作が不正です。');
-        miniGesture={kind,cursor:screen.getCursorScreenPoint(),bounds:mini.getBounds()};return;
+        miniGesture={kind,cursor:screen.getCursorScreenPoint(),bounds:visibleMiniBounds(mini.getBounds())};return;
       }
       if(!['update','end'].includes(action))throw new Error('画面操作が不正です。');
       if(!miniGesture)return;
@@ -498,13 +499,12 @@ if(!app.requestSingleInstanceLock())app.quit();else {
         positionBubble();return;
       }
       miniGesture=null;mini.setBounds(visibleMiniBounds(mini.getBounds()));
-      await serialize(()=>store.write({...store.data,miniBounds:{...mini.getBounds(),height:Math.round(mini.getBounds().width*348/280)}}));
+      await serialize(()=>store.write({...store.data,miniBounds:visibleMiniBounds(mini.getBounds())}));
     });
     ipcMain.handle('mini-shape',(event,rects,viewport)=>{
       trusted(event,'mini');const size=mini.getContentBounds();
-      if(viewport?.width!==size.width||viewport?.height!==size.height)return; // A newer resize superseded this outline.
-      if(!Array.isArray(rects)||!rects.length||rects.length>3000||rects.some(r=>!r||!['x','y','width','height'].every(k=>Number.isInteger(r[k]))||r.x<0||r.y<0||r.width<1||r.height<1||r.x+r.width>size.width||r.y+r.height>size.height))throw new Error('録音ウィンドウの形状が不正です。');
-      mini.setShape(rects);
+      const region=miniShapeRects(rects,viewport,size,mini.webContents.getZoomFactor());
+      if(region)mini.setShape(region); // Ignore a stale viewport during resize.
     });
     ipcMain.handle('dictionary-exclusions',async event=>{
       trusted(event,'settings');
@@ -514,8 +514,12 @@ if(!app.requestSingleInstanceLock())app.quit();else {
       trusted(event,'settings');await serialize(async()=>{if(phase!=='idle')throw new Error('録音・補正が終わってから操作してください。');await store.write(releaseExclusion(store.data,id));});broadcast();return snapshot();
     });
     ipcMain.handle('continuation-hide',event=>{trusted(event,'bubble');bubbleDismissed=true;bubble.hide();maybeHideMini();});
+    ipcMain.handle('continuation-focus',event=>{trusted(event,'bubble');bubble.setFocusable(true);bubble.focus();});
     ipcMain.handle('continuation-copy',(event,selection)=>{
-      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('録音・補正が終わってからコピーしてください。');clipboard.writeText(selectedContinuation(remaining,selection).text);
+      trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||!remaining?.text)throw new Error('コピーする文字がありません。');
+      // Copy the visible snapshot, even if correction finishes while IPC is in flight.
+      if(selection&&(typeof selection.source!=='string'||selection.source.length>2000000))throw new Error('コピー対象が不正です。');
+      clipboard.writeText(selectedContinuation(selection?{text:selection.source}:remaining,selection).text);
     });
     ipcMain.handle('continuation-insert',async(event,selection)=>{
       trusted(event,event.sender===bubble?.webContents?'bubble':'mini');if(!store.data.settings.continuationAssist||phase!=='idle'||!remaining?.text||continuationBusy)throw new Error('入力できる続きがありません。');
@@ -570,7 +574,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
         if(!final.text.trim())return {empty:true};
         live.savedId=await remember(final.text,final.text,'未補正');
         const result=live.correction?{corrected:await live.correction.finish(final.text)}:await correctLive(final.text,controller.signal);controller.signal.throwIfAborted();writeLive(result.corrected);await live.writing;
-        await remember(result.corrected,final.text,live.blocked?'自動入力停止':live.state?(live.input?.verification==='input-monitor'?'入力送信済み（本文取得非対応）':'入力済み'):'確認待ち',live.savedId);
+        await remember(result.corrected,final.text,live.blocked?'自動入力停止':live.state?(live.input?.verification==='input-monitor'?'入力送信済み':'入力済み'):'確認待ち',live.savedId);
         updateContinuation(result.corrected);return {blocked:remaining?'':live.blocked,text:result.corrected};
       }catch(error){updateContinuation();if(!live.command&&live.raw&&!live.savedId)await remember(live.raw,live.raw,'処理中断');throw error;}
       finally{controller=null;}
@@ -586,7 +590,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     if(store.data.settings.imeAutoImport){try{const result=await importIme(true);if(result.importStats.overflow||result.importStats.skipped)report(new Error(importMessage(result.importStats)));}catch(error){report(error);}}
     if(store.data.settings.commandEnabled&&!await registerCommand(store.data.settings.commandShortcut))report(new Error('コマンドショートカットが他のアプリで使われています。設定で変更してください。'));
     if(!await register(store.data.settings.shortcut))report(new Error('ショートカットが他のアプリで使われています。設定で変更してください。'));
-  }).catch(error=>{dialog.showErrorBox('起動できません',error.stack||error.message);app.quit();});
+  }).catch(error=>{if(!shuttingDown)dialog.showErrorBox('起動できません',error.stack||error.message);app.quit();});
 }
 app.on('window-all-closed',()=>{});
 app.on('before-quit',event=>{

@@ -1,8 +1,6 @@
 // Match the native hit region to the visible UI, so transparent corners pass clicks through.
 async function updateMiniShape(){
   const canvas=document.createElement('canvas');const width=innerWidth,height=innerHeight;canvas.width=width;canvas.height=height;document.documentElement.style.setProperty('--mini-scale',width/280);
-  const needed=Math.ceil(348*width/280);
-  if(height!==needed){await window.dictation.miniLayout(needed);return;}
   const context=canvas.getContext('2d');
   for(const id of ['shell']){
     const shell=document.getElementById(id);if(shell.hidden||shell.hasAttribute('hidden'))continue;
@@ -11,7 +9,10 @@ async function updateMiniShape(){
     const path=new Path2D(shell.querySelector('path').getAttribute('d'));
     context.fill(path);context.lineWidth=12;context.stroke(path);context.restore();
   }
-  for(const selector of ['#wave','#info','#hide','#resize-handle','#shortcut-tip']){
+  const resize=document.querySelector('#resize-handle'),resizeBounds=resize.getBoundingClientRect();
+  context.save();context.translate(resizeBounds.x,resizeBounds.y);context.scale(width/280,width/280);
+  context.fill(new Path2D(resize.querySelector('path').getAttribute('d')));context.restore();
+  for(const selector of ['#wave','#info','#hide','#shortcut-tip']){
     const element=document.querySelector(selector);if(element.hidden)continue;
     const r=element.getBoundingClientRect();context.fillRect(r.x,r.y,r.width,r.height);
   }
@@ -33,11 +34,11 @@ new MutationObserver(scheduleMiniShape).observe(document.body,{attributes:true,a
 
 let shapeFrame;
 window.addEventListener('resize',()=>{cancelAnimationFrame(shapeFrame);shapeFrame=requestAnimationFrame(()=>updateMiniShape().catch(shapeError));});
-for(const [id,kind] of [['drag-handle','move'],['resize-handle','resize']]){
+for(const [id,kind] of [['shell','move'],['drag-handle','move'],['resize-handle','resize']]){
   const element=document.getElementById(id);let active=false,chain=Promise.resolve();
   const send=action=>{chain=chain.then(()=>window.dictation.miniGesture(action,kind)).catch(shapeError);return chain;};
-  element.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();active=true;element.setPointerCapture(event.pointerId);send('start');});
+  element.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();active=true;element.dataset.dragging='';element.setPointerCapture(event.pointerId);send('start');});
   element.addEventListener('pointermove',()=>{if(active)send('update');});
-  const end=()=>{if(active){active=false;send('end');}};
+  const end=()=>{if(active){active=false;delete element.dataset.dragging;send('end');}};
   element.addEventListener('pointerup',end);element.addEventListener('lostpointercapture',end);element.addEventListener('pointercancel',end);
 }

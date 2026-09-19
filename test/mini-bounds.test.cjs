@@ -1,0 +1,4 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {miniBounds}=require('../src/mini-bounds.cjs');
+const area={x:0,y:0,width:1920,height:1040};
+test('bad saved mini geometry cannot escape supported bounds',()=>{for(const saved of [null,{},'bad',{width:999999,height:-1,x:1e100,y:null},{width:139,height:1000,x:-10000,y:10000},{width:420,height:1,x:0,y:0},{width:NaN,height:Infinity}]){const b=miniBounds(saved,area);assert.ok(b.width>=140&&b.width<=420);assert.equal(b.height,Math.round(b.width*348/280));assert.ok(b.x>=0&&b.x+b.width<=1920);assert.ok(b.y>=0&&b.y+b.height<=1040);}});
+test('negative-origin monitors and ordinary positions remain supported',()=>{assert.deepEqual(miniBounds({x:-1100,y:50,width:168,height:209},{x:-1280,y:0,width:1280,height:1024}),{x:-1100,y:50,width:168,height:209});});

@@ -1,13 +1,13 @@
 # 配布とリリース
 
-現在の配布版は **0.7.61（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.61) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
+現在の配布版は **0.7.62（プレリリース）** です。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.62) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
 
 ## 配布物
 
-- `gourdy-0.7.61-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
-- `gourdy-0.7.61-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
-- `gourdy-0.7.61-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
+- `gourdy-0.7.62-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
+- `gourdy-0.7.62-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
+- `gourdy-0.7.62-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
 - `SHA256SUMS.txt`：公開済み配布物のSHA256。
 
 ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
@@ -20,7 +20,7 @@ npm test
 npm run test:nlp
 npm run dist -- --config.directories.output=dist-staged
 npm run release:zip
-Expand-Archive release/gourdy-0.7.61-windows-x64.zip -DestinationPath dist-installer-input
+Expand-Archive release/gourdy-0.7.62-windows-x64.zip -DestinationPath dist-installer-input
 npm run dist:installer -- --prepackaged dist-installer-input --config.directories.output=dist-installer
 ```
 
