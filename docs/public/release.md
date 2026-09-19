@@ -1,13 +1,13 @@
 # 配布とリリース
 
-現在の配布版は **0.7.3（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.3) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
+現在の配布版は **0.7.4（プレリリース）** です。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
 
 ## 配布物
 
-- `gourdy-0.7.3-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
-- `gourdy-0.7.3-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
-- `gourdy-0.7.3-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
+- `gourdy-0.7.4-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
+- `gourdy-0.7.4-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
+- `gourdy-0.7.4-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
 - `SHA256SUMS.txt`：公開済み配布物のSHA256。
 
 ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
@@ -20,7 +20,7 @@ npm test
 npm run test:nlp
 npm run dist -- --config.directories.output=dist-staged
 npm run release:zip
-Expand-Archive release/gourdy-0.7.3-windows-x64.zip -DestinationPath dist-installer-input
+Expand-Archive release/gourdy-0.7.4-windows-x64.zip -DestinationPath dist-installer-input
 npm run dist:installer -- --prepackaged dist-installer-input --config.directories.output=dist-installer
 ```
 
@@ -54,7 +54,7 @@ GitHubが自動生成するGourdyのSource code ZIPは、第三者対応ソー�
 バージョンは明示的な判断なしに変更しません。
 
 
-## 0.7.3の追加内容
+## 0.7.4の追加内容
 
 - 泡の出現・逆再生での格納、2回押しで常時表示を切替。
 - お知らせ・吹き出しが本体の後ろへ回らない親子ウィンドウ設定。
@@ -64,4 +64,4 @@ GitHubが自動生成するGourdyのSource code ZIPは、第三者対応ソー�
 - 再表示後のクリック不能、右Ctrl単独の誤判定、Gemini停止待ち、設定の未装飾選択欄を修正。
 - 実インストール・更新を確認。完全アンインストールは未検証で、キー削除処理は隔離ファイルで検証。
 
-0.7.3のZIP・インストーラーにはMoonshine・Qwen・ja_ginzaのモデル重みを含めません。実行環境とSudachiの辞書は同梱します。初回のお知らせから接続方法を選択し、モデル取得はオプトインです。
+0.7.4のZIP・インストーラーにはMoonshine・Qwen・ja_ginzaのモデル重みを含めません。実行環境とSudachiの辞書は同梱します。初回のお知らせから接続方法を選択し、モデル取得はオプトインです。

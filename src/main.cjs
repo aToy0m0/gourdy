@@ -184,7 +184,7 @@ async function showMini() {
   if(!hidden){mini.showInactive();mini.moveTop();raiseMiniPanels();await restoreMiniInput();}
 }
 function hideMiniAnimated(){
-  if(!shuttingDown&&windowVisible(mini)){miniExiting=true;send(mini,'mini-motion',{id:++miniMotionId,direction:'exit'});}
+  if(!shuttingDown&&!miniExiting&&windowVisible(mini)){miniExiting=true;send(mini,'mini-motion',{id:++miniMotionId,direction:'exit'});}
 }
 async function showSettings(tab='operation') {
   await handlersReady;
@@ -210,7 +210,7 @@ async function startCommand() {
 function registerCommand(shortcut){return globalShortcut.register(shortcut,()=>startCommand().catch(error=>{commandSession=null;report(error)}));}
 const {RecordingShortcut}=require('./recording-shortcut.cjs');
 const {ShortcutTaps,shouldHideMini}=require('./shortcut-taps.cjs');
-const shortcutTaps=new ShortcutTaps(()=>toggle().catch(report),()=>setMiniPinned(!miniPinned()).catch(report));
+const shortcutTaps=new ShortcutTaps(()=>toggle().catch(report),()=>setMiniPinned().catch(report));
 const recordingShortcut=new RecordingShortcut(globalShortcut,()=>{if(!editor?.isFocused())shortcutTaps.tap()},report);
 function register(shortcut){shortcutTaps.cancel();return recordingShortcut.register(shortcut);}
 async function saveSettings(patch, preserveHistory=false) {
@@ -278,8 +278,11 @@ function writeLive(text) {
 }
 function miniPinned(){return store.data.miniPinned??!process.argv.includes('--autostart');}
 async function setMiniPinned(value){
-  await serialize(()=>store.write({...store.data,miniPinned:value}));
-  if(value)await showMini();else maybeHideMini();
+  await serialize(async()=>{
+    const next=value??!miniPinned();
+    await store.write({...store.data,miniPinned:next});
+    if(next)await showMini();else maybeHideMini();
+  });
 }
 function maybeHideMini(){
   if(shuttingDown||!mini||mini.isDestroyed())return;

@@ -47,6 +47,13 @@ window.dictation.on('mini-motion',async ({id,direction})=>{
     if(direction==='enter')await window.dictation.miniMotionReady(id);
     await Promise.all(miniAnimations.map(a=>a.finished));
     if(generation!==motionGeneration)return;
+    if(direction==='exit'){
+      // Let the final small outline reach the compositor before hiding HWND.
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if(generation!==motionGeneration)return;
+      await window.dictation.miniMotionDone(id,direction);
+      return; // Keep the collapsed frame until the next enter/restore.
+    }
     await window.dictation.miniMotionDone(id,direction);
     if(generation!==motionGeneration)return;
     for(const a of miniAnimations)a.cancel();miniAnimations=[];delete document.body.dataset.motion;
