@@ -28,3 +28,9 @@ body[data-motion] #drag-handle{pointer-events:none}
 #info{left:25px;top:253px;width:40px;height:40px;background:#fff;color:#222;box-shadow:0 2px 5px #00000020;z-index:2}#info svg{width:20px;height:20px}
 #hide svg{width:18px;height:18px}
 #shortcut-tip{position:absolute;left:36px;top:64px;max-width:234px;padding:6px 10px;border-radius:8px;background:#262626;color:#fff;font-size:max(11px,calc(11px / var(--mini-scale,.6)));line-height:1.4;white-space:normal;overflow-wrap:anywhere;pointer-events:none;z-index:3}
+/* Optical sizing: small icons keep a 0.8px floor as the window shrinks. */
+#record svg{stroke-width:calc(1.92px + .24px / var(--mini-scale,.75));stroke-linecap:round;stroke-linejoin:round}
+#settings svg{stroke-width:calc(1.2px + .64px / var(--mini-scale,.75))}
+#info svg{stroke-width:calc(1.2px + .96px / var(--mini-scale,.75))}
+#hide svg{stroke-width:calc(1.2px + 1.066667px / var(--mini-scale,.75))}
+#copy-continuation svg{stroke-width:calc(1.2px + 1.28px / var(--mini-scale,.75));stroke-linecap:round;stroke-linejoin:round}

@@ -40,6 +40,8 @@ let handlersRegistered;
 const handlersReady=new Promise(resolve=>{handlersRegistered=resolve;});
 const {LocalMcp,localMediaPath}=require('./local-mcp.cjs');
 const mcpClients=require('./mcp-clients.cjs');
+const {dataTools}=require('./mcp-data.cjs');
+const {bubblePosition}=require('./bubble-position.cjs');
 const mcpClientPaths=()=>({home:app.getPath('home'),appData:app.getPath('appData'),codexHome:process.env.CODEX_HOME});
 let installingMcp=false;
 let mcpServer,mediaId=null;
@@ -109,9 +111,9 @@ async function ensureMini() {
     mini.setPosition(Math.max(area.x,area.x+area.width-width-24),Math.max(area.y,area.y+area.height-height-24));
   }
   mini.setSkipTaskbar(true);
-  mini.on('show',()=>{mini.setSkipTaskbar(!store.data.settings.showTaskbar);restoreMiniInput().catch(report);});
+  mini.on('show',()=>{mini.setSkipTaskbar(store.data.settings.closeToTray);restoreMiniInput().catch(report);});
   mini.on('move',()=>positionBubble());
-  mini.on('resize',()=>positionInfo());
+  mini.on('resize',()=>positionBubble());
   mini.on('hide',()=>{mini.setSkipTaskbar(true);infoOpen=false;infoWindow?.hide();});
   mini.on('close',event=>{if(!shuttingDown){event.preventDefault();closeMini().catch(report);}});
   await secureWindow(mini,'index.html');
@@ -120,7 +122,9 @@ function positionBubble(){
   positionInfo();
   if(shuttingDown||!bubble||bubble.isDestroyed()||!mini||mini.isDestroyed())return;
   const m=mini.getBounds(),area=screen.getDisplayMatching(m).workArea;
-  bubble.setBounds({x:Math.max(area.x,Math.min(m.x,area.x+area.width-315)),y:Math.max(area.y,Math.min(m.y-174,area.y+area.height-174)),width:315,height:174});
+  const {bounds,tailX}=bubblePosition(m,area);
+  bubble.setBounds(bounds);
+  send(bubble,'continuation-position',{tailX});
 }
 function positionInfo(){
   if(shuttingDown||!infoWindow||infoWindow.isDestroyed()||!mini||mini.isDestroyed())return;
@@ -197,7 +201,7 @@ function hideMiniAnimated(){
 async function showSettings(tab='operation') {
   await handlersReady;
   if(editor && !editor.isDestroyed()){editor.show();editor.focus();send(editor,'select-tab',tab);return;}
-  editor=new BrowserWindow({icon:appIcon,width:680,height:700,minWidth:420,minHeight:450,frame:false,show:false,minimizable:false,title:'Gourdy - 設定',backgroundColor:'#ffffff',skipTaskbar:!store.data.settings.showTaskbar,
+  editor=new BrowserWindow({icon:appIcon,width:680,height:700,minWidth:420,minHeight:450,frame:false,show:false,minimizable:false,title:'Gourdy - 設定',backgroundColor:'#ffffff',skipTaskbar:false,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   closingEditor=false;
   editor.on('close',event=>{if(!shuttingDown&&!closingEditor){event.preventDefault();send(editor,'request-close');}});
@@ -252,7 +256,7 @@ async function saveSettings(patch, preserveHistory=false) {
     }
     if(newKey)recordingShortcut.unregister(previous.shortcut);
     if(unregisterOldCommand)commandShortcut.unregister(previous.commandShortcut);
-    mini?.setSkipTaskbar(!windowVisible(mini)||!next.showTaskbar);editor?.setSkipTaskbar(!next.showTaskbar);broadcast();if(!next.fastStart||next.aiProvider!=='local')await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
+    if(mini&&!mini.isDestroyed())mini.setSkipTaskbar(!windowVisible(mini)||next.closeToTray);broadcast();if(!next.fastStart||next.aiProvider!=='local')await releaseWarmVoice();else prepareVoice();await refreshContinuation();return snapshot();
   });
 }
 async function prepareMeeting(file){
@@ -335,6 +339,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     tray.setContextMenu(Menu.buildFromTemplate([{label:'Gourdyを開く',click:()=>setMiniPinned(true).catch(report)},{label:'設定',click:()=>showSettings().catch(report)},{label:'録音を開始 / 停止',click:()=>toggle().catch(report)},{type:'separator'},{label:'終了',click:()=>app.quit()}]));
     tray.on('double-click',()=>setMiniPinned(true).catch(report));
     mcpServer=new LocalMcp(app.getPath('userData'),{
+      ...dataTools({store,serialize,isIdle:()=>phase==='idle'&&!importing,onChange:broadcast,recordings}),
       prepare_file:async({path:file})=>prepareMeeting(await localMediaPath(file)),
       start_transcription:async({id})=>{await meetings.read(id);startMeeting(id);return {id,state:'running'};},
       get_transcription:async({id})=>{const job=await meetings.read(id);if(job.state==='running'&&mediaId!==id)job.state='paused';return {...job,text:transcript(job)};},

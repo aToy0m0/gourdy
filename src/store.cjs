@@ -7,7 +7,7 @@ const defaults = {
   aiProvider: 'none',
   shortcut: 'ControlRight', commandShortcut: 'AltRight', commandEnabled: false, advancedCorrection: false, progressiveCorrection: true, saveAudio: true, replacements: [], liveInput: true,
   textBackground: true, noiseThresholdDb: -80, mcpEnabled: true, mcpPort: 55888, microphoneId: '', noiseSuppression: true, continuationAssist: true, fastStart: true,
-  accent: '#262626', closeToTray: true, showTaskbar: true, launchAtStartup: false, imeAutoImport: false,
+  accent: '#262626', closeToTray: true, launchAtStartup: false, imeAutoImport: false,
   count: 10, chars: 12000,
   terms: [{ term: 'Claude', reading: 'くろーど' }, { term: 'Electron', reading: 'えれくとろん' }]
 };
@@ -21,7 +21,7 @@ function validate(settings) {
   shortcutKeys(settings.commandShortcut);
   if(settings.commandEnabled&&settings.commandShortcut===settings.shortcut)throw new Error('録音とコマンドには別のショートカットを指定してください。');
   validateReplacements(settings.replacements);
-  if (!colors.includes(settings.accent) || ['closeToTray','textBackground','liveInput','showTaskbar','launchAtStartup','imeAutoImport','saveAudio','progressiveCorrection','advancedCorrection','commandEnabled','noiseSuppression','continuationAssist','fastStart'].some(k => typeof settings[k] !== 'boolean')) throw new Error('操作設定が不正です。');
+  if (!colors.includes(settings.accent) || ['closeToTray','textBackground','liveInput','launchAtStartup','imeAutoImport','saveAudio','progressiveCorrection','advancedCorrection','commandEnabled','noiseSuppression','continuationAssist','fastStart'].some(k => typeof settings[k] !== 'boolean')) throw new Error('操作設定が不正です。');
   if (!Number.isInteger(settings.count) || settings.count < 0 || settings.count > 1000 || !Number.isInteger(settings.chars) || settings.chars < 1 || settings.chars > 12000) throw new Error('保存件数は0〜1000件、文字数は1〜12000文字です。');
   if (!Array.isArray(settings.terms) || settings.terms.length > 100 || settings.terms.some(t => !t || typeof t.term !== 'string' || t.term.length > 80 || typeof t.reading !== 'string' || t.reading.length > 120)) throw new Error('用語は100件まで、表記は80文字、読みは120文字までです。');
   return settings;
@@ -36,6 +36,7 @@ class Store {
     try {
       this.data = JSON.parse(await fs.readFile(this.file, 'utf8'));
       if(this.data.miniPinned!==undefined&&typeof this.data.miniPinned!=='boolean')throw new Error('録音画面の表示モードが不正です。');
+      delete this.data.settings.showTaskbar;
       this.data.settings.imeAutoImport ??= false;
       this.data.settings.aiProvider ??= 'local';
       this.data.settings.commandEnabled ??= false;

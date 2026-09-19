@@ -23,3 +23,5 @@ function selection(){
  const start=prefix.toString().length;return {start,end:start+range.toString().length,source:current.text};
 }
 for(const id of ['copy','insert'])$(id).addEventListener('mousedown',event=>event.preventDefault());
+
+api.onPosition(({tailX})=>document.documentElement.style.setProperty('--tail-x',tailX+'px'));

@@ -5,3 +5,5 @@
 #close{display:grid;place-items:center;flex-shrink:0}#close svg{width:18px;height:18px}
 
 #setup{width:auto;height:auto;align-self:flex-start;flex-shrink:0;margin:8px 12px 12px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;background:white;color:#222;font:inherit;cursor:pointer}#setup[hidden]{display:none}
+/* 18px icon: 1.7px on screen, matching the settings history actions. */
+#close svg{stroke-width:2.266667}
