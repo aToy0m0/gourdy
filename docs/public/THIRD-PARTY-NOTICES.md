@@ -38,7 +38,7 @@ ElectronのChromium第三者表示には、そのバイナリに含まれる依�
 
 ## 対応ソースと追加通知
 
-[0.7.6のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.6)に、`gourdy-0.7.6-corresponding-sources.zip` をアプリと同時に掲載します。
+[リリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.61)に、`gourdy-0.7.61-corresponding-sources.zip` をアプリと同時に掲載します。
 上流URLと取得物のSHA256は、その中の `SOURCE-MANIFEST.json` に記録します。
 
 - FFmpeg：コミット `912208af28` の未変更ソース、`build-ffmpeg.sh`、ビルド条件を収録。GPL、nonfree、version3、外部ライブラリの自動検出を無効化し、共有DLLとしてビルドしています。`resources/runtime/ffmpeg/BUILD.txt` に識別情報を記載します。DLLは交換可能です。
