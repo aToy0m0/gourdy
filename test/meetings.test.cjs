@@ -15,3 +15,22 @@ test('無音境界と重なりを保存し中断・再開でも確定区間を�
  const saved=await manager.read(job.id);assert.equal(saved.parts[0].boundary.reason,'silence');assert.equal(saved.parts[0].end,saved.parts[1].start);assert.ok(Math.abs(saved.parts[0].audioEnd-saved.parts[1].audioStart-.2)<1e-8);
  const first=structuredClone(saved.parts[0]);const resumed=await manager.run(job.id);assert.equal(resumed.state,'done');assert.deepEqual(resumed.parts[0],first);assert.equal(decoded.length,3);
 });
+
+test('BYOK認識は選択した接続を使い、音声を小分けにして終了・切断する',async()=>{
+ const {recognize}=require('../src/meetings.cjs');let bytes=0,closed=0;const kinds=[];const pcm=Buffer.from(new Float32Array(320).fill(.1).buffer);
+ const result=await recognize(pcm,{cloudSpeechFactory:()=>({ready:Promise.resolve(),request:async(kind,b)=>{kinds.push(kind);bytes+=b?.length||0;return {text:'クラウドの結果'}},close:async()=>closed++,fail:()=>{}})});
+ assert.equal(result,'クラウドの結果');assert.equal(bytes,pcm.length);assert.deepEqual(kinds,['audio','stop']);assert.equal(closed,1);
+});
+test('BYOK補正の失敗後も原文を再送せず、再開時の共通接続を使う',async()=>{
+ let asr=0,corrections=0;const {manager,job}=await fixture({recognizePart:async()=>{asr++;return '原文'}},1);
+ const {refinePart}=new Meetings('','',()=>({}));manager.refinePart=refinePart;
+ manager.settings=async()=>({provider:'openai',cloudRequestFactory:()=>async()=>{corrections++;throw Error('HTTP 429')},glossary:[]});
+ const first=await manager.run(job.id);assert.equal(first.state,'partial');assert.equal(first.parts[0].raw,'原文');assert.equal(asr,1);assert.equal(corrections,3);
+ manager.settings=async()=>({provider:'gemini',cloudRequestFactory:()=>async()=>({edits:[{before:'原文',after:'原文。'}]}),glossary:[]});
+ const final=await manager.run(job.id);assert.equal(final.state,'done');assert.equal(asr,1);assert.equal(final.parts[0].provider,'openai');assert.equal(final.parts[0].correctionProvider,'gemini');assert.equal(final.parts[0].corrected,'原文。');
+});
+test('BYOK音声送信の待機中でも中断して接続を閉じる',async()=>{
+ const {recognize}=require('../src/meetings.cjs');const c=new AbortController();let closed=0,stopped=false;const pcm=Buffer.from(new Float32Array(16000).fill(.1).buffer);
+ const work=recognize(pcm,{cloudSpeechFactory:()=>({ready:Promise.resolve(),request:async(kind)=>{if(kind==='stop')stopped=true;else setTimeout(()=>c.abort(),5);return{text:''}},close:async()=>closed++,fail:()=>{}})},c.signal);
+ await assert.rejects(work);assert.equal(closed,1);assert.equal(stopped,false);
+});

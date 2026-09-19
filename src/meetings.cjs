@@ -1,5 +1,6 @@
 const fs=require('node:fs/promises'),path=require('node:path'),{spawn}=require('node:child_process'),{randomUUID}=require('node:crypto'),{setTimeout:delay}=require('node:timers/promises');
 const {Moonshine}=require('./moonshine.cjs'),{refine}=require('./refine.cjs');
+const {cloudCorrect}=require('./cloud-correction.cjs');
 const {quietBoundary}=require('./meeting-boundary.cjs');
 const SECONDS=60,MAX_SECONDS=12*3600;
 function execute(exe,args,{signal,maxBuffer=8*1024*1024,timeout=90000}={}){
@@ -35,15 +36,15 @@ async function decode(job,part,bin,signal,wav=false){
 async function recognize(pcm,settings,signal){
  // Exact digital silence needs no model call; quiet speech is still recognized.
  if(pcm.every(byte=>byte===0))return '';
- signal?.throwIfAborted();const worker=new Moonshine(settings);const abort=()=>worker.fail(new Error('処理を中止しました。'));signal?.addEventListener('abort',abort,{once:true});
- try{signal?.throwIfAborted();await worker.ready;for(let at=0;at<pcm.length;at+=64000){signal?.throwIfAborted();await worker.request('audio',pcm.subarray(at,at+64000))}return (await worker.request('stop')).text;}
+ signal?.throwIfAborted();const worker=settings.cloudSpeechFactory?settings.cloudSpeechFactory():new Moonshine(settings);const abort=()=>worker.fail(new Error('処理を中止しました。'));signal?.addEventListener('abort',abort,{once:true});
+ try{signal?.throwIfAborted();await worker.ready;const step=settings.cloudSpeechFactory?6400:64000,start=performance.now();for(let at=0;at<pcm.length;at+=step){signal?.throwIfAborted();await worker.request('audio',pcm.subarray(at,at+step));if(settings.cloudSpeechFactory){const wait=start+Math.min(at+step,pcm.length)/64-performance.now();if(wait>0)await delay(wait,undefined,{signal});}}return (await worker.request('stop')).text;}
  finally{signal?.removeEventListener('abort',abort);await worker.close();}
 }
 async function atomic(file,data){const temporary=file+'.tmp';const h=await fs.open(temporary,'w');try{await h.writeFile(JSON.stringify(data),'utf8');await h.sync()}finally{await h.close()}await fs.rename(temporary,file);}
 function transcript(job){return job.parts.map(p=>`[${formatTime(p.start)}–${formatTime(p.end)}]${p.state==='done'?'':p.raw!==undefined?'（未補正）':'（未完了）'}\n${p.corrected??p.raw??''}`).join('\n\n');}
 function formatTime(seconds){return [Math.floor(seconds/3600),Math.floor(seconds/60)%60,Math.floor(seconds)%60].map(n=>String(n).padStart(2,'0')).join(':');}
 class Meetings {
- constructor(folder,bin,settings,{decodePart=decode,recognizePart=recognize,refinePart=async(text,s,signal)=>(await refine(text,s,signal)).corrected,retryDelay=1000}={}){Object.assign(this,{folder,bin,settings,decodePart,recognizePart,refinePart,retryDelay});this.running=false;}
+ constructor(folder,bin,settings,{decodePart=decode,recognizePart=recognize,refinePart=async(text,s,signal)=>(s.cloudRequestFactory?await cloudCorrect(text,s,s.cloudRequestFactory(signal)):await refine(text,s,signal)).corrected,retryDelay=1000}={}){Object.assign(this,{folder,bin,settings,decodePart,recognizePart,refinePart,retryDelay});this.running=false;}
  file(id){if(!/^[a-f0-9-]{36}$/.test(id))throw new Error('会議IDが不正です。');return path.join(this.folder,id+'.json')}
  async save(job){await fs.mkdir(this.folder,{recursive:true});await atomic(this.file(job.id),job);}
  async read(id){const file=this.file(id);if((await fs.stat(file)).size>32*1024*1024)throw new Error('会議データが大きすぎます。');const job=JSON.parse(await fs.readFile(file,'utf8'));if(job.id!==id||job.version!==1||!Array.isArray(job.parts)||job.parts.length>720||!path.isAbsolute(job.source)||!Number.isFinite(job.duration)||job.duration>MAX_SECONDS)throw new Error('保存された会議データが不正です。');return job;}
@@ -55,7 +56,7 @@ class Meetings {
  async run(id,signal,changed=()=>{}){
  if(this.running)throw new Error('別の会議を処理中です。');this.running=true;let job;
  try{job=await this.read(id);await this.verify(job);job.state='running';await this.save(job);changed(job);
- const settings=this.settings();let consecutiveFailures=0;delete job.error;
+ const settings=await this.settings(signal);let consecutiveFailures=0;delete job.error;
  for(const [index,part] of job.parts.entries()){
   signal?.throwIfAborted();if(part.state==='done')continue;await this.verify(job);
   for(let attempt=1;attempt<=3;attempt++){
@@ -79,11 +80,11 @@ class Meetings {
       await this.save(job);
      }
      const range={start:part.audioStart??part.start,end:part.audioEnd??part.end};
-     const pcm=await this.decodePart(job,range,this.bin,attemptSignal);signal?.throwIfAborted();const raw=await this.recognizePart(pcm,settings,attemptSignal);if(typeof raw!=='string'||raw.length>12000)throw new Error('認識結果が不正か区間の文字数上限を超えています。');part.raw=raw;
+     const pcm=await this.decodePart(job,range,this.bin,attemptSignal);signal?.throwIfAborted();const raw=await this.recognizePart(pcm,settings,attemptSignal);if(typeof raw!=='string'||raw.length>12000)throw new Error('認識結果が不正か区間の文字数上限を超えています。');part.raw=raw;part.provider=settings.provider||'local';
     }
    }catch(e){failure=e;}
    if(!failure){part.state='correcting';await this.save(job);changed(job,index,attempt);
-    try{signal?.throwIfAborted();part.corrected=part.raw.trim()?await this.refinePart(part.raw,settings,attemptSignal):'';if(typeof part.corrected!=='string'||part.corrected.length>24000)throw new Error('補正結果が不正です。');part.state='done';}catch(e){failure=e;}
+    try{signal?.throwIfAborted();part.corrected=part.raw.trim()?await this.refinePart(part.raw,settings,attemptSignal):'';if(typeof part.corrected!=='string'||part.corrected.length>24000)throw new Error('補正結果が不正です。');part.correctionProvider=settings.provider||'local';part.state='done';}catch(e){failure=e;}
    }
    if(!failure){await this.save(job);changed(job,index,attempt);break;}
    if(signal?.aborted)throw failure;

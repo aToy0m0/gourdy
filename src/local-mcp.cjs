@@ -3,7 +3,7 @@ const {Server,createMcpHandler}=require('@modelcontextprotocol/server');
 const {toNodeHandler}=require('@modelcontextprotocol/node');
 const tools=[
  ['prepare_file','ローカル音声・動画を検査して文字起こしジョブを保存します。まだ認識は開始しません。',{path:{type:'string',description:'音声・動画の絶対パス'}},['path']],
- ['start_transcription','保存したジョブの未完了区間を開始・再開します。すぐにIDを返すのでget_transcriptionで進捗を確認してください。',{id:{type:'string'}},['id']],
+ ['start_transcription','設定中の共通AI接続で、保存したジョブの未完了区間を開始・再開します。BYOK選択時は音声・文章・辞書を外部APIへ送信し料金が発生します。すぐにIDを返すのでget_transcriptionで進捗を確認してください。',{id:{type:'string'}},['id']],
  ['get_transcription','進捗、区間ごとの失敗、保存済みの文字起こし結果を取得します。',{id:{type:'string'}},['id']],
  ['list_transcriptions','保存したファイル文字起こしジョブの一覧を取得します。',{},[]],
  ['cancel_transcription','指定した実行中ジョブを中断します。保存済み区間は再開できます。',{id:{type:'string'}},['id']]

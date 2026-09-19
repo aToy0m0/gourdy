@@ -69,7 +69,14 @@ function windowVisible(window){return Boolean(window&&!window.isDestroyed()&&win
 function snapshot() { return {...store.data, localModels:localModels?.state, cloudKeys:{...cloudKeys?.present}, mcp:mcpServer?.status, latest, phase, version:app.getVersion(), dataPath:store.file,notice:lastNotice,commandModel:commandModel?.state}; }
 async function liveEngine(signal){
   const settings=engine(),provider=store.data.settings.aiProvider;
-  if(['openai','gemini'].includes(provider))settings.cloudRequest=cloudRequest(provider,await cloudKeys.read(provider),signal);
+  settings.provider=provider;
+  if(provider==='none')throw new Error('AI接続で使用する方式を選んでください。');
+  if(['openai','gemini'].includes(provider)){
+    const key=await cloudKeys.read(provider);
+    settings.cloudRequestFactory=signal=>cloudRequest(provider,key,signal);
+    settings.cloudRequest=settings.cloudRequestFactory(signal);
+    settings.cloudSpeechFactory=()=>new CloudSpeech(provider,key);
+  }else localModels.assertReady();
   return settings;
 }
 async function correctLive(text,signal,context={}){const settings=await liveEngine(signal);return settings.cloudRequest?cloudCorrect(text,settings,settings.cloudRequest,context):refine(text,{...settings,...context},signal);}
@@ -252,10 +259,10 @@ async function prepareMeeting(file){
 }
 function startMeeting(id){
  if(phase!=='idle'||importing)throw new Error('現在の処理が終わってから開始してください。');
- localModels.assertReady();
+ if(needsSetup())throw new Error('AI接続でBYOKを設定するか、ローカルモデルを取得してください。');
  mediaController=new AbortController();mediaId=id;setPhase('processing');const signal=mediaController.signal;
  mediaDone=(async()=>{
-  try{const configuration=engine();for(const key of ['python','llmEngine','llmModel','moonshineModel','moonshineRuntime']){try{await fs.access(configuration[key]);}catch{throw new Error(`${key}が見つかりません。配布ファイルを確認してください。`);}}
+  try{const configuration=engine();for(const key of store.data.settings.aiProvider==='local'?['python','llmEngine','llmModel','moonshineModel','moonshineRuntime']:[]){try{await fs.access(configuration[key]);}catch{throw new Error(`${key}が見つかりません。配布ファイルを確認してください。`);}}
    await releaseWarmVoice();return await meetings.run(id,signal,(job,index,attempt)=>send(editor,'meeting-changed',{job,index,attempt}));
   }catch(e){try{const job=await meetings.read(id);if(!['error','paused'].includes(job.state)){job.state=signal.aborted?'paused':'error';job.error=e.message;await meetings.save(job);send(editor,'meeting-changed',{job});}}catch(saveError){report(saveError);}throw e;}
   finally{mediaController=null;mediaDone=null;mediaId=null;setPhase('idle');prepareVoice();}
@@ -316,7 +323,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     if(store.data.settings.advancedCorrection&&commandModel.state.state!=='ready')commandModel.update({error:'上位補正モデルが見つからないか破損しています。再ダウンロードするか上位補正をオフにしてください。'});
     recordings=new Recordings(path.join(app.getPath('userData'),'recordings'));await recordings.recover();
     const cleanup=setInterval(()=>{if(phase==='idle')recordings.prune().catch(report);},3600000);cleanup.unref();
-    meetings=new Meetings(path.join(app.getPath('userData'),'meetings'),path.join(root,'runtime/ffmpeg'),engine);
+    meetings=new Meetings(path.join(app.getPath('userData'),'meetings'),path.join(root,'runtime/ffmpeg'),liveEngine);
     session.defaultSession.setPermissionRequestHandler((contents,permission,callback,details)=>callback(Boolean((contents===mini?.webContents || contents===editor?.webContents) && permission==='media' && details.mediaTypes?.every(t=>t==='audio'))));
     session.defaultSession.setPermissionCheckHandler((contents,permission)=>Boolean((contents===mini?.webContents||contents===editor?.webContents)&&permission==='media'));
     session.defaultSession.webRequest.onBeforeRequest({urls:['http://*/*','https://*/*','ws://*/*','wss://*/*']},(_,cb)=>cb({cancel:true}));
@@ -356,14 +363,14 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     ipcMain.handle('recording-delete',async(event,id)=>{trusted(event,'settings');if(phase!=='idle')throw new Error('処理終了後に削除してください。');await recordings.remove(id);});
     ipcMain.handle('recording-retry',async(event,id)=>{
       trusted(event,'settings');if(phase!=='idle'||commandSession)throw new Error('現在の処理が終わってから再認識してください。');
-      localModels.assertReady();
+      if(needsSetup())throw new Error('AI接続でBYOKを設定するか、ローカルモデルを取得してください。');
       const row=await recordings.read(id);if(!row.duration||row.state==='recording')throw new Error('再認識できる音声がありません。');
       await releaseWarmVoice();setPhase('processing');controller=new AbortController();
-      try{const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(300000)]),settings=engine();
+      try{const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(Math.ceil(row.duration*1000)+120000)]),settings=await liveEngine(controller.signal);
         const pcm=await decode({source:recordings.file(id,'wav'),audioStream:0},{start:0,end:row.duration},meetings.bin,signal);
         const raw=await recognize(pcm,settings,signal);if(!raw.trim())throw new Error('音声から文字を認識できませんでした。音声は残っています。');
         const historyId=await remember(raw,raw,'再認識・未補正');
-        const result=await refine(raw,settings,signal);await remember(result.corrected,raw,'再認識・確認待ち',historyId);
+        const result=settings.cloudRequestFactory?await cloudCorrect(raw,settings,settings.cloudRequestFactory(signal)):await refine(raw,settings,signal);await remember(result.corrected,raw,'再認識・確認待ち',historyId);
       }finally{controller=null;setPhase('idle');prepareVoice();}
       return snapshot();
     });

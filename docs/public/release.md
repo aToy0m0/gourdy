@@ -1,13 +1,13 @@
 # 配布とリリース
 
-現在の配布版は **0.7.4（プレリリース）** です。
-[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
+現在の配布版は **0.7.5（プレリリース）** です。
+[GitHub Releases](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5) でWindows x64用ZIP、インストーラーと対応ソースを配布しています。
 
 ## 配布物
 
-- `gourdy-0.7.4-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
-- `gourdy-0.7.4-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
-- `gourdy-0.7.4-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
+- `gourdy-0.7.5-windows-x64-setup.exe`：ユーザー単位のインストーラー。実行環境を同梱し、スタートメニューへ登録。
+- `gourdy-0.7.5-windows-x64.zip`：アプリ、依存ランタイム、公開ドキュメント、ライセンス。
+- `gourdy-0.7.5-corresponding-sources.zip`：FFmpeg、Moonshine内Eigen、ONNX Runtime用Eigen、certifi、tqdmの対応ソース、FFmpegビルド手順と取得物のハッシュ。
 - `SHA256SUMS.txt`：公開済み配布物のSHA256。
 
 ZIP版は全体を展開してGourdy.exeを起動します。Microsoft Visual C++ v14 x64ランタイムが必要です。
@@ -20,7 +20,7 @@ npm test
 npm run test:nlp
 npm run dist -- --config.directories.output=dist-staged
 npm run release:zip
-Expand-Archive release/gourdy-0.7.4-windows-x64.zip -DestinationPath dist-installer-input
+Expand-Archive release/gourdy-0.7.5-windows-x64.zip -DestinationPath dist-installer-input
 npm run dist:installer -- --prepackaged dist-installer-input --config.directories.output=dist-installer
 ```
 
@@ -54,14 +54,11 @@ GitHubが自動生成するGourdyのSource code ZIPは、第三者対応ソー�
 バージョンは明示的な判断なしに変更しません。
 
 
-## 0.7.4の追加内容
+## 0.7.5の変更と検証
 
-- 泡の出現・逆再生での格納、2回押しで常時表示を切替。
-- お知らせ・吹き出しが本体の後ろへ回らない親子ウィンドウ設定。
-- 任意のOpenAI Realtime + Luna / Gemini BYOK。初回は未設定。ローカルモデル取得はオプトインで、BYOKのAPI料金は別途必要。
-- APIキーのWindows暗号化保存。認識・補正・キー操作の通信失敗を明示。
-- OpenAIとGeminiの実APIで13秒の合成音声を検証。途中認識・停止確定・補正が成功。実マイクと外部入力欄を含む通し試験は未完了。
-- 再表示後のクリック不能、右Ctrl単独の誤判定、Gemini停止待ち、設定の未装飾選択欄を修正。
-- 実インストール・更新を確認。完全アンインストールは未検証で、キー削除処理は隔離ファイルで検証。
+- AI接続をマイク・ファイル・保存録音の再認識・MCPで共通化しました。BYOK選択時はローカルモデルなしで処理できます。
+- ファイルは区間ごとに音声をAPIへ送り、途中結果を保存します。失敗時は最大3回試行し、再送にも料金がかかる場合があります。別方式への暗黙の切替は行いません。
+- OpenAIは設定画面の処理経路、GeminiはMCP経由で、約13秒の日本語合成音声の認識・補正・完了を確認しました。処理時間はそれぞれ約17秒・15秒です。OpenAIの結果には誤認識が残り、精度を保証する試験ではありません。
+- BYOKでの長時間ファイル、保存録音の再認識経路の実API試験、クリーンなWindowsでの導入・完全アンインストールは未検証です。
 
-0.7.4のZIP・インストーラーにはMoonshine・Qwen・ja_ginzaのモデル重みを含めません。実行環境とSudachiの辞書は同梱します。初回のお知らせから接続方法を選択し、モデル取得はオプトインです。
+モデル重みは同梱しません。実行環境とSudachiの辞書は同梱します。初回のお知らせから接続方法を選択し、モデル取得はオプトインです。

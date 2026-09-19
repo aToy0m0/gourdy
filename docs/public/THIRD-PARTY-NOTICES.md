@@ -18,7 +18,7 @@ Gourdy独自部分のMITライセンスは、以下の第三者コード・モ�
 | [Qwen3.5-0.8B](https://huggingface.co/Qwen/Qwen3.5-0.8B) / [GGUF](https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF) | Q4_0、文章補正 | Apache-2.0 | licenses/qwen3.txt |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | b10976、CPU推論 | MIT | licenses/llama-cpp.txt |
 | LLVM OpenMP | llama.cppの同梱ライブラリ | Apache-2.0 WITH LLVM-exception | resources/runtime/llama/LICENSE-LLVM-OpenMP |
-| [GiNZA](https://github.com/megagonlabs/ginza) / ja_ginza | 5.2.1 / 5.2.0、日本語解析（ja_ginzaモデルは0.7.4から別途取得） | MIT、モデル・学習データの表示を同梱 | licenses/release/GiNZA-*、ja_ginza-* |
+| [GiNZA](https://github.com/megagonlabs/ginza) / ja_ginza | 5.2.1 / 5.2.0、日本語解析（ja_ginzaモデルは0.7.5から別途取得） | MIT、モデル・学習データの表示を同梱 | licenses/release/GiNZA-*、ja_ginza-* |
 | [spaCy](https://github.com/explosion/spaCy) | 3.8.16、日本語解析基盤 | MIT | Pythonのdist-info |
 | [SudachiPy](https://github.com/WorksApplications/SudachiPy) / [SudachiDict](https://github.com/WorksApplications/SudachiDict) | 0.6.11 / core 20260723 | Apache-2.0、辞書由来データの条件あり | licenses/release/SudachiDict-20260723-LEGAL、SudachiPy-LICENSE |
 | [sounddevice](https://github.com/spatialaudio/python-sounddevice) / PortAudio | 0.5.5、音声関連依存 | MIT等 | Moonshineランタイムのdist-info等 |
@@ -38,7 +38,7 @@ ElectronのChromium第三者表示には、そのバイナリに含まれる依�
 
 ## 対応ソースと追加通知
 
-[0.7.4のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4)に、`gourdy-0.7.4-corresponding-sources.zip` をアプリと同時に掲載します。
+[0.7.5のリリース](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)に、`gourdy-0.7.5-corresponding-sources.zip` をアプリと同時に掲載します。
 上流URLと取得物のSHA256は、その中の `SOURCE-MANIFEST.json` に記録します。
 
 - FFmpeg：コミット `912208af28` の未変更ソース、`build-ffmpeg.sh`、ビルド条件を収録。GPL、nonfree、version3、外部ライブラリの自動検出を無効化し、共有DLLとしてビルドしています。`resources/runtime/ffmpeg/BUILD.txt` に識別情報を記載します。DLLは交換可能です。

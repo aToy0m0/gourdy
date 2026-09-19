@@ -20,7 +20,7 @@ setupはnpm依存、Python依存、llama.cpp、埋め込みPython、Moonshineモ
 Python依存はバージョン固定ですが、wheelのハッシュ固定は未対応です。
 
 **FFmpegは別途準備が必要です。** `runtime/ffmpeg/` にLGPL sharedビルドのffmpeg.exe、ffprobe.exe、共有DLL、LICENSE.txt、BUILD.txtを置きます。
-Gourdy 0.7.4ではFFmpeg 912208af28を `scripts/build-ffmpeg.sh` でビルドします（WSL内でMinGW-w64、nasm、make、pkg-configが必要）。ビルド先の `gourdy/ffmpeg/bin` からexeとDLLを配置し、MinGWのlibwinpthread-1.dllと通知も同梱します。
+Gourdy 0.7.5ではFFmpeg 912208af28を `scripts/build-ffmpeg.sh` でビルドします（WSL内でMinGW-w64、nasm、make、pkg-configが必要）。ビルド先の `gourdy/ffmpeg/bin` からexeとDLLを配置し、MinGWのlibwinpthread-1.dllと通知も同梱します。
 使用中ビルドと必要な対応ソースは [第三者表示](THIRD-PARTY-NOTICES.md) を参照してください。
 FFmpegを準備するまでは会議ファイルの読み込み・音声プレビューを検証できません。
 異なるビルドへ変更するときは、ライセンス・依存・SHA256を改めて確認してください。
@@ -47,7 +47,7 @@ Nodeのテストは辞書・履歴・補正・再開処理・入力プロトコ�
 - `licenses/`：第三者のライセンス本文。
 - `scripts/package-release.py`：ビルド済みフォルダーのZIP化とSHA256生成。
 
-現在のバージョンは **0.7.4** です。バージョン変更は明示的なリリース判断で行い、作業のたびに自動でマイナーバージョンを上げません。
+現在のバージョンは **0.7.5** です。バージョン変更は明示的なリリース判断で行い、作業のたびに自動でマイナーバージョンを上げません。
 package.jsonとpackage-lock.json、READMEと配布案内を同時に更新します。
 入力の安全確認を失敗時に黙って省略しないこと、無関係なモデル変更や抽象化を混ぜないことを原則とします。
 

@@ -10,7 +10,8 @@ function cloudFill(){
   $(provider+'-key-state').textContent=registered?'登録済み（接続・課金枠は未確認）':'未登録';
   $(provider+'-key-delete').disabled=!idle||!registered;
  }
- $('cloud-active').textContent=data.settings.aiProvider==='none'?'使うAIを選択してください。':data.settings.aiProvider==='local'?'マイク入力は端末内で処理します。':'録音中の音声・補正対象の文章・辞書を選択したAPIへ送信します。音声コマンドでは選択中の文字も送信します。API利用料がかかります。';
+ $('file-ai-notice').textContent=data.settings.aiProvider==='none'?'AI接続で使用する方式を選んでください。':data.settings.aiProvider==='local'?'接続先：ローカル':'接続先：'+(data.settings.aiProvider==='openai'?'OpenAI':'Gemini')+' · 音声と文章をAPIへ送信します。区間の失敗時は最大3回試行し、再送にも料金がかかる場合があります。';
+ $('cloud-active').textContent=data.settings.aiProvider==='none'?'使うAIを選択してください。':data.settings.aiProvider==='local'?'音声認識・補正はすべて端末内で処理します。':'マイク・ファイル・再認識・MCPの音声、補正対象の文章・辞書を選択したAPIへ送信します。音声コマンドでは選択中の文字も送信します。API利用料がかかります。';
 }
 $('ai-provider').onchange=async()=>{try{await persist({aiProvider:$('ai-provider').value});}catch(e){report(e);}finally{cloudFill();renderCommandModel();}};
 for(const provider of ['openai','gemini']){

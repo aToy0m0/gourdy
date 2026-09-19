@@ -10,37 +10,41 @@
 
 ![Gourdyの録音画面。マイクボタン、音量バー、設定ボタン](docs/public/assets/transcription.png)
 
-[![Version](https://img.shields.io/badge/version-0.7.4-262626)](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4)
+[![Version](https://img.shields.io/badge/version-0.7.5-262626)](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078D4)](docs/public/getting-started.md)
 [![License](https://img.shields.io/badge/app_license-MIT-4b7152)](LICENSE)
 [![Free](https://img.shields.io/badge/有料機能-なし-262626)](#できること)
 
-[ダウンロード](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4) / [使い方](docs/public/getting-started.md) / [開発ガイド](docs/public/development.md)
+[ダウンロード](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5) / [使い方](docs/public/getting-started.md) / [開発ガイド](docs/public/development.md)
 
 </div>
 
 Gourdy（ごーでぃ）は、話している途中から入力欄へ文字を送り、認識結果の変化に合わせて末尾を修正します。
 ローカル接続を選ぶと、音声認識と日本語解析、AIによる文章補正をPC内で処理します。初回は未設定で起動し、お知らせから接続方法を選べます。
 ローカル利用にAPIキーは不要です。
-0.7.4では任意のBYOKとして、OpenAI Realtime + Luna / Geminiによるマイク入力を追加しています。選択時は音声・文章・辞書をAPIへ送信し、API利用料が別途かかります。アプリ自体の有料機能はありません。
+任意のBYOKとして、OpenAI Realtime + Luna / Geminiを選択できます。マイク・ファイル・保存録音の再認識・MCPで共通の接続先を使います。選択時は音声・文章・辞書をAPIへ送信し、API利用料が別途かかります。アプリ自体の有料機能はありません。
 
 > **開発中のプレリリースです。セキュリティ対策と監査は万全ではありません。**
 > 誤認識や入力先の誤判定が起こることがあります。重要な文章は送信前に確認してください。
 > 現時点で機密情報を扱う用途には推奨しません。[セキュリティと保存データの扱い](docs/public/security.md)を確認してください。
 
-## 0.7.4の修正
+## 0.7.5の変更
+
+AI接続の選択をマイク・ファイル文字起こし・録音の再認識・MCPで共通化しました。BYOK選択時はファイルの音声もAPIへ送信し、ローカルモデルは不要です。
+
+## 0.7.4までの修正
 
 ダブルタップの判定を400msに調整し、連続操作時の表示切替の取りこぼしを修正しました。お知らせ・吹き出しを閉じた後の格納モーションが重複して始まらないようにし、縮小した最後のフレームを描画してから格納します。トレイ格納時はタスクバー表示も解除し、再表示時に設定どおり戻します。
 
 ## ダウンロード
 
-[バージョン0.7.4のリリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4)でZIP版とインストーラー版を配布しています。
-0.7.4の配布物には実行環境を含め、モデルは同梱しません。設定の「AI接続」でBYOKを設定するか、ローカルモデルを明示的にダウンロードします。PythonやNode.jsの追加インストールは不要です。
+[バージョン0.7.5のリリースページ](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)でZIP版とインストーラー版を配布しています。
+0.7.5の配布物には実行環境を含め、モデルは同梱しません。設定の「AI接続」でBYOKを設定するか、ローカルモデルを明示的にダウンロードします。PythonやNode.jsの追加インストールは不要です。
 
 | 配布形式 | ファイル | 起動方法 |
 | --- | --- | --- |
-| インストーラー版 | [gourdy-0.7.4-windows-x64-setup.exe](https://github.com/aToy0m0/gourdy/releases/download/v0.7.4/gourdy-0.7.4-windows-x64-setup.exe) | インストール後、スタートメニューの「Gourdy」から起動 |
-| ZIP版 | [gourdy-0.7.4-windows-x64.zip](https://github.com/aToy0m0/gourdy/releases/download/v0.7.4/gourdy-0.7.4-windows-x64.zip) | 全体を展開し、同梱の `Gourdy.exe` を起動 |
+| インストーラー版 | [gourdy-0.7.5-windows-x64-setup.exe](https://github.com/aToy0m0/gourdy/releases/download/v0.7.5/gourdy-0.7.5-windows-x64-setup.exe) | インストール後、スタートメニューの「Gourdy」から起動 |
+| ZIP版 | [gourdy-0.7.5-windows-x64.zip](https://github.com/aToy0m0/gourdy/releases/download/v0.7.5/gourdy-0.7.5-windows-x64.zip) | 全体を展開し、同梱の `Gourdy.exe` を起動 |
 
 対象はWindows x64です。
 **Microsoft Visual C++ v14 x64ランタイムが必要です。**
@@ -92,7 +96,7 @@ MCP接続は初期状態で同じPCから利用できるよう有効になって
 - BYOKは両社の実APIで短い合成音声を検証しました。実マイクから外部入力欄までの通し試験、長時間利用、実課金額の計測は未完了です。
 - 会議の話者分離には対応していません。ファイルの再生プレビューは区間単位です。
 - ローカル補正を含む試験では約1.65GBのメモリを使用し、停止後の補正に約20秒かかった例があります。1.5GB以下の使用量や即時の補正完了は保証していません。BYOK録音中のピーク使用量は未計測です。
-- クリーンなWindows仮想マシンでの導入試験は未実施です。検証条件は[リリースノート](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.4)に記載しています。
+- クリーンなWindows仮想マシンでの導入試験は未実施です。検証条件は[リリースノート](https://github.com/aToy0m0/gourdy/releases/tag/v0.7.5)に記載しています。
 
 ## 開発と技術構成
 
